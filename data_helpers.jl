@@ -116,17 +116,17 @@ function transform(all_matrix, max_node=nothing, n_sample=nothing)
     end
     all_data = []
     for matrix in all_matrix
-        x = fill(0, (n, max_node))
+        x = fill(0, (n + 1, max_node))
         x[1, :] .= 1
-        y = fill(0, (n, max_node))
+        y = fill(0, (n + 1, max_node))
         random_indices = shuffle(1:size(matrix)[1])
         matrix_shuffle = matrix[random_indices, random_indices]
         graph = SimpleGraph(matrix_shuffle)
         indices = bfs_ordering(graph)
         matrix_shuffle = matrix_shuffle[indices, indices]
         encoded = encode(matrix_shuffle, max_node=max_node)
-        y[1:size(encoded)[1] - 1, :] = encoded
-        x[2:size(encoded)[1], :] = encoded
+        y[1:size(encoded)[1], :] = encoded
+        x[2:size(encoded)[1] + 1, :] = encoded
         push!(all_data, Dict([("x": x), ("y": y), ("len": size(matrix)[1])))
     end
     return all_data
