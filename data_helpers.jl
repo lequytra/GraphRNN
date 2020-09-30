@@ -1,7 +1,7 @@
 using LinearAlgebra
 using Random
 using LightGraphs
-
+using Flux
 
 #=
 Generate a sequences of step to construct the given adj_matrix.
@@ -151,11 +151,12 @@ Returns:
     Array{Int32}: a list of vertex indices.
 =#
 function bfs_ordering(graph, root=1)
-    # choose a random node to start
-    rand_start_vertex = rand(1:nv(graph))
-
-    # get the bfs traverse tree, return is a tree graph
-    bfs_travel_tree = bfs_tree(graph, rand_start_vertex)
+    if root == nothing
+        # choose a random node to start
+        rand_start_vertex = rand(1:nv(graph))
+    else 
+        rand_start_vertex = root 
+    end
 
     # set up visit visit_queue
     visit_queue = [rand_start_vertex]       # node in visit_queue must also be in bfs_seq
@@ -207,7 +208,9 @@ function transform(all_matrix, max_node=nothing, n_sample=nothing)
     if max_node == nothing
         max_node = find_max_node(all_matrix, n_sample=n_sample)
     end
-    all_data = []
+    all_x = []
+    all_y = []
+    all_len = []
     for matrix in all_matrix
         x = fill(0, (n + 1, max_node))
         x[1, :] .= 1
@@ -220,7 +223,9 @@ function transform(all_matrix, max_node=nothing, n_sample=nothing)
         encoded = encode(matrix_shuffle, max_node=max_node)
         y[1:size(encoded)[1], :] = encoded
         x[2:size(encoded)[1] + 1, :] = encoded
-        push!(all_data, Dict([("x": x), ("y": y), ("len": size(matrix)[1])))
+        push!(all_x, Flux.batchseq([x[:, i] for i in 1:size(x)[2]]))
+        push!(all_y, Flux.batchseq(y[:, i] for i in 1:size(y)[2]))
+        push!(all_len, size(matrix)[1])
     end
-    return all_data
+    return (all_x, all_y, all_len)
 end
