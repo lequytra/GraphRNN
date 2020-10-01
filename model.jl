@@ -55,13 +55,3 @@ function Model(input_size, node_embedding_size, edge_embedding_size, node_hidden
 	Model(GRUBlock(input_size, node_embedding_size, node_hidden_size, has_input=true, has_output=true, output_size=hidden_output_size),
 		GRUBlock(1, edge_embedding_size, edge_hidden_size, has_input=true, has_output=true, output_size=1))
 end
-
-
-function train(model, epochs, dataloader, resume_from=1)
-	for i in resume_from:epochs
-		loss(x, y) = Flux.Losses.logitcrossentropy(model(x), y)
-		opt = Flux.Optimise.RMSProp()
-		pms = flux.params(model)
-		Flux.train!(loss, pms, dataloader, opt)
-	end
-end
