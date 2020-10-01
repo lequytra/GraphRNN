@@ -29,7 +29,7 @@ function encode_full(adj_matrix, max_prev_node=nothing)
     # for each node, create a construction step.
     for i in 1:size(adj_matrix, 1)
         # start and end indices of row i in adj_matrix
-        input_start = max(1, i - max_prev_node)
+        input_start = max(1, i - max_prev_node + 1)
         input_end = i
 
         # start and end indices of row i in output
@@ -61,7 +61,7 @@ function decode_full(encoded_matrix)
     # for each encoded step
     for i in 1:size(encoded_matrix, 1)
         # start and end of row i in decoded
-        decoded_start = max(0, i - max_prev_node)
+        decoded_start = max(0, i - max_prev_node + 1)
         decoded_end = i
 
         # start and end of row i in encoded_matrix
@@ -108,14 +108,14 @@ function encode(adj_matrix)
         step = adj_matrix[i, input_start:input_end]
         push!(output, step)
         non_zero = findall(x -> x == 0, arr)
-        if size(non_zero, 1) > 0
+        if length(non_zero) > 0
             non_zero = non_zero[1]
         else
             non_zero = 0 # This might be the case with a disconnected graph, we should experiment more
         end
 
         # update input_start for next encoded step
-        input_start = input_end - size(arr, 1) + non_zero
+        input_start = input_end - length(arr) + non_zero
     end
     # return encoded output
     return output
@@ -154,8 +154,8 @@ function bfs_ordering(graph, root=1)
     if root == nothing
         # choose a random node to start
         rand_start_vertex = rand(1:nv(graph))
-    else 
-        rand_start_vertex = root 
+    else
+        rand_start_vertex = root
     end
 
     # set up visit visit_queue
@@ -178,51 +178,91 @@ function bfs_ordering(graph, root=1)
     return bfs_seq
 end
 
-function find_max_node(all_matrix, n_sample=nothing)
-    #=
-    Estimate the maximum number of prev nodes to keep.
-    =#
+#=
+Estimate the maximum number of prev nodes to keep.
+in:     all_matrix: array of adjacency matrix
+        n_sample: number of sampled matrices being used to find max_node.
+out:    the max prev_node among sampled matrix
+
+note prev_node = number of row of (encoded matrix)
+=#
+function find_max_prev_node(all_matrix, n_sample=nothing)
+    # set number of sample if it is nothing.
     if n_sample == nothing
-        random_indices = 1:size(all_matrix)[1]
-    end
-    # randomly pick n_sample
-    random_indices = rand(1:size(all_matrix)[1], n_sample)
-    all = all_matrix[random_indices]
-    max_so_far = 0
-    for matrix in all
-        encoded = encode(matrix)
-        max_so_far = max(max_so_far, max(map(x -> length(x), encoded)))
+        n_sample = min(20000, size(all_matrix)[1])
     end
 
-    return max_so_far
+    # create a random indices
+    random_indices = rand(1:size(all_matrix)[1], n_sample)
+
+    # create sampled matrices array
+    sampled_matrix = all_matrix[random_indices]
+    max_node_so_far = 0
+
+    # find max_node_so_far
+    for matrix in sampled_matrix
+        encoded = encode(matrix)
+        max_node_so_far = max(max_node_so_far, max(map(x -> length(x), encoded)))
+    end
+
+    return max_node_so_far
 end
 
-function transform(all_matrix, max_node=nothing, n_sample=nothing)
+#=
+Generate training data from adjacency matrices.
+
+in:     all_matrix: array of adjacency matrices. This is our dataset
+        max_num_node: maximum number of nodes in matrices in all_matrix
+        max_prev_node: int, the maximum length of the row in adjacency matrix
+        n_sample = int, number of sample
+
+out:    all_x = array of encoded matrices. size = batch_size
+        all_y = our array of targets correspond to . size = batch_size
+        all_len = int, number of nodes in each matrix
+=#
+function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sample=nothing)
+    # get an array of number of nodes of each matrix in all_matrix
     all_size = [size(matrix)[1] for matrix in all_matrix]
-    if max_node == nothing
-        n = max(all_size)
-    else
-        n = max_node
+
+    # get the max prev_node (max width of matrices in all_matrix)
+    if max_prev_node == nothing
+        max_prev_node = find_max_prev_node(all_matrix, n_sample=n_sample)
     end
 
-    if max_node == nothing
-        max_node = find_max_node(all_matrix, n_sample=n_sample)
+    # set up n (maximum number of nodes)
+    if max_num_node == nothing
+        n = reduce(max, all_size)
+    elseif condition
+        n = max_num_node
     end
+
+    # output
     all_x = []
     all_y = []
     all_len = []
+
     for matrix in all_matrix
-        x = fill(0, (n + 1, max_node))
+        # init the training sequence
+        x = fill(0, (n, max_prev_node))
         x[1, :] .= 1
-        y = fill(0, (n + 1, max_node))
+
+        # init the training label (target)
+        y = fill(0, (n, max_node))
+
+        # permute order of nodes
         random_indices = shuffle(1:size(matrix)[1])
-        matrix_shuffle = matrix[random_indices, random_indices]
-        graph = SimpleGraph(matrix_shuffle)
+        permuted_matrix = matrix[random_indices, random_indices]
+
+        # generate new graph from permuted matrix
+        graph = Graph(permuted_matrix)
         indices = bfs_ordering(graph)
-        matrix_shuffle = matrix_shuffle[indices, indices]
-        encoded = encode(matrix_shuffle, max_node=max_node)
+        permuted_matrix = permuted_matrix[indices, indices]
+
+        # encode the matrix to be
+        encoded = encode_full(permuted_matrix, max_node=max_node)
         y[1:size(encoded)[1], :] = encoded
         x[2:size(encoded)[1] + 1, :] = encoded
+
         push!(all_x, Flux.batchseq([x[:, i] for i in 1:size(x)[2]]))
         push!(all_y, Flux.batchseq(y[:, i] for i in 1:size(y)[2]))
         push!(all_len, size(matrix)[1])
