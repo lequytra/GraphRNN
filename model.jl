@@ -5,7 +5,7 @@ mutable struct OutputModule
 end
 
 OutputModule(hidden_size, embedding_size, output_size) = OutputModule(Chain(Flux.Dense(hidden_size, embedding_size, relu), 
-																	Flux.Dense(embedding_size, output_size, sigmoid)))
+		Flux.Dense(embedding_size, output_size, sigmoid)))
 Flux.@functor OutputModule
 
 mutable struct GRUBlock
@@ -18,10 +18,10 @@ end
 
 GRUBlock(input_size, embedding_size, hidden_size; has_input=true, has_output=true, output_size=nothing) =
 	GRUBlock(has_input, 
-			has_output, 
-			Flux.Dense(input_size, embedding_size), 
-			GRU(embedding_size, hidden_size), 
-			OutputModule(hidden_size, embedding_size, output_size))
+		has_output, 
+		Flux.Dense(input_size, embedding_size), 
+		GRU(embedding_size, hidden_size), 
+		OutputModule(hidden_size, embedding_size, output_size))
 
 hidden(m::GRUBlock) = hidden(m.rnn.state)
 
