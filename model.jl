@@ -2,11 +2,15 @@ using Flux
 
 mutable struct OutputModule 
 	output_layer::Chain
+	OutputModule(hidden_size, embedding_size, output_size) = new(Chain(Flux.Dense(hidden_size, embedding_size, relu), 
+		Flux.Dense(embedding_size, output_size, sigmoid)))
 end
 
-OutputModule(hidden_size, embedding_size, output_size) = OutputModule(Chain(Flux.Dense(hidden_size, embedding_size, relu), 
-		Flux.Dense(embedding_size, output_size, sigmoid)))
 Flux.@functor OutputModule
+
+function (m::OutputModule)(x)
+	return m.output_layer(x)
+end
 
 mutable struct GRUBlock
 	has_input::Bool 
@@ -23,11 +27,13 @@ GRUBlock(input_size, embedding_size, hidden_size; has_input=true, has_output=tru
 		GRU(embedding_size, hidden_size), 
 		OutputModule(hidden_size, embedding_size, output_size))
 
-hidden(m::GRUBlock) = hidden(m.rnn.state)
+hidden(m::GRUBlock) = m.rnn.state
 
-Flux.@functor GRUBlock
+function set_hidden!(m::GRUBlock, h)
+	m.rnn.state = h 
+end
 
-Flux.trainable(gru::GRUBlock) = (params(gru.linear), params(gru.rnn), params(gru.output_module))
+Flux.trainable(gru::GRUBlock) = (gru.linear, gru.rnn, gru.output_module)
 
 function (m::GRUBlock)(inp)
 	if has_input
@@ -45,13 +51,11 @@ struct Model
 	edge_level
 end
 
-Flux.@functor Model 
-
-Flux.trainable(m::Model) = (params(m.graph_level), params(m.edge_level))
+Flux.trainable(m::Model) = (m.graph_level, m.edge_level)
 
 function (m::Model)(inp) 
 	inp2 = graph_level(inp)
-	hidden(edge_level) = inp2
+	set_hidden!(edge_level, inp2)
 	edge_inp = fill(0.0, size(inp))
 	edge_inp[:, :, 1] .= 1.0
 	edge_inp[:, :, 2:end] = inp[:, :, 1:end - 1]
