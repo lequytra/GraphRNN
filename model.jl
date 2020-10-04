@@ -34,6 +34,7 @@ function set_hidden!(m::GRUBlock, h)
 end
 
 Flux.trainable(gru::GRUBlock) = (gru.linear, gru.rnn, gru.output_module)
+Flux.reset!(gru::GRUBlock) = Flux.reset!(gru.rnn.chain)
 
 function (m::GRUBlock)(inp)
 	if has_input
@@ -52,6 +53,7 @@ struct Model
 end
 
 Flux.trainable(m::Model) = (m.graph_level, m.edge_level)
+Flux.reset!(m::Model) = Flux.reset!(m.graph_level) && Flux.reset!(m.edge_level)
 
 function (m::Model)(inp) 
 	inp2 = graph_level(inp)
