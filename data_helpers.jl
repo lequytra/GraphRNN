@@ -237,7 +237,6 @@ function find_max_prev_node(all_matrix, n_sample=nothing, root=nothing)
     if n_sample == nothing
         n_sample = max(20000, size(all_matrix)[1])
     end
-    println(n_sample)
 
     # create a random indices
     random_indices = rand(1:size(all_matrix)[1], n_sample)
@@ -276,7 +275,7 @@ function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sa
 
     # get the max prev_node (max width of matrices in all_matrix)
     if max_prev_node == nothing
-        max_prev_node = find_max_prev_node(all_matrix, n_sample=n_sample)
+        max_prev_node = find_max_prev_node(all_matrix, n_sample)
     end
 
     # set up n (maximum number of nodes)
@@ -303,10 +302,10 @@ function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sa
         shuffled_matrix = permute_matrix(matrix)
 
         # generate new graph from permuted adj_matrix
-        shuffled_matrix = bfs_adj_matrix(shuffled_matrix, root=root)
+        shuffled_matrix = bfs_adj_matrix(shuffled_matrix, root)
 
         # encode the matrix
-        encoded = encode_full(shuffled_matrix, max_prev_node=max_prev_node)
+        encoded = encode_full(shuffled_matrix, max_prev_node)
 
         y[1:size(encoded)[1], :] = encoded
         x[2:size(encoded)[1] + 1, :] = encoded

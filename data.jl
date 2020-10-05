@@ -1,4 +1,3 @@
-using JLD2
 using FileIO
 using LightGraphs
 
@@ -98,3 +97,5 @@ end
 # println(all_x[1])
 # println(all_y[1])
 # println(all_len[1])
+
+create_er_dataset(1000, "Train_ER", 30,10,0.8,0.04)
