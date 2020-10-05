@@ -286,8 +286,9 @@ function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sa
     end
 
     # output
-    all_x = []
-    all_y = []
+    # init columns with 0, will remove afterward
+    all_x = fill(0, n)
+    all_y = fill(0, n)
     all_len = []
 
     for matrix in all_matrix
@@ -310,9 +311,20 @@ function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sa
         y[1:size(encoded)[1], :] = encoded
         x[2:size(encoded)[1] + 1, :] = encoded
 
-        push!(all_x, Flux.batchseq([x[:, i] for i in 1:size(x)[2]]))
-        push!(all_y, Flux.batchseq(y[:, i] for i in 1:size(y)[2]))
+        #push!(all_x, Flux.batchseq([x[:, i] for i in 1:size(x)[2]]))
+        #push!(all_y, Flux.batchseq(y[:, i] for i in 1:size(y)[2]))
+        #push!(all_len, size(matrix)[1])
+        all_x = [all_x [temp[:] for temp in eachrow(x)]] # convert x matrix to an
+                                                       # array of arrays. This is our sequence
+                                                       # where is element is an encoded step,
+
+        all_y = [all_y [temp[:] for temp in eachrow(y)]] # do similar thing to y
         push!(all_len, size(matrix)[1])
     end
+
+    # slice the first all 0 cols
+    all_x = all_x[:, 2:size(all_x, 2)]
+    all_y = all_y[:, 2:size(all_y, 2)]
+
     return (all_x, all_y, all_len)
 end

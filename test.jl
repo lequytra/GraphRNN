@@ -50,6 +50,7 @@ end
 function test_encode_decode_full_er_w_input(adj_matrix)
     @show adj_matrix
     @show encoded_adj = encode_full(adj_matrix)
+    return encoded_adj
     @show decoded_adj = decode_full(encoded_adj)
 
     if adj_matrix != decoded_adj
@@ -58,6 +59,6 @@ function test_encode_decode_full_er_w_input(adj_matrix)
 end
 
 adj = er_adj_matrix(10, 0.1)
-bfs_adj_matrix(adj)
+adj = bfs_adj_matrix(adj)
 
-test_encode_decode_full_er()
+adj = test_encode_decode_full_er_w_input(adj)

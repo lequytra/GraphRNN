@@ -98,4 +98,6 @@ end
 # println(all_y[1])
 # println(all_len[1])
 
-create_er_dataset(1000, "Train_ER", 30,10,0.8,0.04)
+# create and load the data
+create_er_dataset(6, "Train_ER", 10,5,0.8,0.7)
+(x, y, len) = load_dataset("Train_ER_data.jld")
