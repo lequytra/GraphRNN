@@ -303,10 +303,10 @@ function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sa
         shuffled_matrix = permute_matrix(matrix)
 
         # generate new graph from permuted adj_matrix
-        shuffled_matrix = bfs_adj_matrix(shuffled_matrix, root=root)
+        shuffled_matrix = bfs_adj_matrix(shuffled_matrix, root)
 
         # encode the matrix
-        encoded = encode_full(shuffled_matrix, max_prev_node=max_prev_node)
+        encoded = encode_full(shuffled_matrix, max_prev_node)
 
         y[1:size(encoded)[1], :] = encoded
         x[2:size(encoded)[1] + 1, :] = encoded
