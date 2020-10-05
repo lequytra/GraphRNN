@@ -237,7 +237,6 @@ function find_max_prev_node(all_matrix, n_sample=nothing, root=nothing)
     if n_sample == nothing
         n_sample = max(20000, size(all_matrix)[1])
     end
-    println(n_sample)
 
     # create a random indices
     random_indices = rand(1:size(all_matrix)[1], n_sample)
@@ -276,7 +275,7 @@ function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sa
 
     # get the max prev_node (max width of matrices in all_matrix)
     if max_prev_node == nothing
-        max_prev_node = find_max_prev_node(all_matrix, n_sample=n_sample)
+        max_prev_node = find_max_prev_node(all_matrix, n_sample)
     end
 
     # set up n (maximum number of nodes)
