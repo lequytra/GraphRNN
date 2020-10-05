@@ -1,4 +1,4 @@
-data_path: # add path to data
+data_path: "train_ER_data.jld"
 
 batch_size: 32
 test_batch_size: 32
@@ -9,10 +9,11 @@ edge_embedding_size: 8
 node_hidden_size: 128
 node_output_size: 16
 
-max_prev_node: -1
+max_prev_node: 28
 
 resume_from: 1
 
 epochs: 100
 
 checkpoints: "checkpoints"
+model_path: # Add model path here. 

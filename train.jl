@@ -1,14 +1,14 @@
-using Flux
-using Filesystem
+using Flux, CUDA
 import YAML
 using BSON: @save, @load
 
 include("model.jl")
-include("datahelper.jl")
+include("data_helpers.jl")
+include("data.jl")
 
 
 function train(model, lr, dataloader, epochs, resume_from=1, checkpoints_folder="", model_path=nothing)
-	if model_path != nothing and ispath(model_path)
+	if model_path != nothing && ispath(model_path)
 		@load model_path model opt 
 	else 
 		opt = Flux.Optimise.ADAM(lr)
@@ -31,20 +31,27 @@ function main(config_path)
 	#TODO fill in main here including loading data, train, test etc. 
 	args = YAML.load_file(config_path)
 
-	x, y, len = load_data(args["data_path"])
+	x, y, len = load_dataset(args["data_path"]) |> gpu
 
-	dataloader = Flux.Data.DataLoader((x, y, len), batchsize=args["batch_size"], shuffle=true)
-	max_prev_node = args["max_prev_node"] != -1 ? args["max_prev_node"] : # TODO: find max_prev_node
+	println("Training on $(size(x, 1)) training examples.")
+
+	@show size(x), size(y)
+
+	dataloader = Flux.Data.DataLoader((x, y), batchsize=args["batch_size"], shuffle=true)
+	# TODO: default to 100 max_prev_node for now since data is encoded. 
+	max_prev_node = args["max_prev_node"] != -1 ? args["max_prev_node"] : 100
 	model = Model(max_prev_node, 
 		args["node_embedding_size"], 
 		args["edge_embedding_size"], 
 		args["node_hidden_size"], 
-		args["node_output_size"]) 
+		args["node_output_size"])  |> gpu
 
 	if !isdir(args["checkpoints"])
 		mkdir(args["checkpoints"])
 	end
 
-	train(model, lr, dataloader, args["epochs"], args["resume_from"], args["checkpoints"])
+	train(model, args["lr"], dataloader, args["epochs"], args["resume_from"], args["checkpoints"])
 
 end
+
+# main("configs/test.yaml")
