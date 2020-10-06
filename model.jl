@@ -1,4 +1,5 @@
 using Flux
+using Zygote: @adjoint
 using LinearAlgebra
 
 mutable struct OutputModule 
@@ -37,9 +38,12 @@ end
 Flux.trainable(gru::GRUBlock) = (gru.linear, gru.rnn, gru.output_module)
 Flux.reset!(gru::GRUBlock) = Flux.reset!(gru.rnn.chain)
 
-function (m::GRUBlock)(inp)
+function (m::GRUBlock)(inp; hidden=nothing)
 	if m.has_input
 		inp = m.linear(inp)
+	end
+	if hidden != nothing
+		set_hidden!(m, hidden)
 	end
 	inp = m.rnn(inp)
 	if m.has_output
@@ -65,24 +69,31 @@ function (m::GraphRNN)(inp)
 	inp2 = m.graph_level.(inp)
 	inp2 = cat(inp2..., dims=2)
 
-	edge_inp = fill(1.0, (size(inp[1])..., size(inp)[1]))
 	partial = [item[:, 1:end-1] for item in inp]
-	edge_inp[:, 2:end, :] = cat([reshape(item, (size(item)..., 1)) for item in partial]..., dims=3)
+	partial = cat([reshape(item, (size(item)..., 1)) for item in partial]..., dims=3)
+	edge_inp = cat([fill(1.0, (size(inp[1], 1), 1, size(inp)[1])), partial]..., dims=2)
 
 	edge_inp = cat([edge_inp[:, :, i] for i in 1:size(inp, 1)]..., dims=2)
+
 	edge_inp = [reshape(edge_inp[:, i], (1, size(edge_inp, 1))) for i in 1:size(edge_inp, 2)]
+
 	all_output = []
-	for i in 1:size(edge_inp, 1)
-		set_hidden!(m.edge_level, inp2[:, i])
-		push!(all_output, m.edge_level(edge_inp[i]))
-	end
+
+	inp2 = [inp2[:, i] for i in 1:size(inp2, 2)]
+	hidden_in = zip(inp2, edge_inp)
+	all_output = [m.edge_level(in_, hidden=hidden) for (hidden, in_) in hidden_in]
+	
 	all_output = cat(all_output..., dims=1)
 	all_output = reshape(all_output, size(inp, 1), n_nodes, :)
 	all_output = [transpose(all_output[i, :, :]) for i in 1:size(inp, 1)]
-	all_output = [reshape(item, (size(item)..., 1)) for item in all_output]
+	all_output = [reshape(item, size(item)..., 1) for item in all_output]
 	all_output = cat(all_output..., dims=3)
+	println("done")
 	return all_output
 end
 
+@adjoint function Base.Iterators.Zip(is)
+  Base.Iterators.Zip(is), Δ -> (collect(zip(Δ...))...,)
+end
 
 # Hidden: hidden_size x timesteps
