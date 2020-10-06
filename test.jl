@@ -57,7 +57,6 @@ function test_encode_decode_full_er_w_input(adj_matrix)
     end
 end
 
-adj = er_adj_matrix(10, 0.1)
-bfs_adj_matrix(adj)
-
-test_encode_decode_full_er()
+# adj = er_adj_matrix(10, 0.1)
+# adj = bfs_adj_matrix(adj)
+# adj = test_encode_decode_full_er_w_input(adj)

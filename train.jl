@@ -9,8 +9,8 @@ include("data.jl")
 
 function train(model, lr, dataloader, epochs, resume_from=1, checkpoints_folder="", model_path=nothing)
 	if model_path != nothing && ispath(model_path)
-		@load model_path model opt 
-	else 
+		@load model_path model opt
+	else
 		opt = Flux.Optimise.ADAM(lr)
 	end
 
@@ -31,7 +31,7 @@ end
 
 
 function main(config_path)
-	#TODO fill in main here including loading data, train, test etc. 
+	#TODO fill in main here including loading data, train, test etc.
 	args = YAML.load_file(config_path)
 
 	# x, y, len = load_dataset(args["data_path"]) |> gpu
@@ -40,13 +40,14 @@ function main(config_path)
 	@show size(x), size(y)
 
 	dataloader = Flux.Data.DataLoader((x, y), batchsize=args["batch_size"], shuffle=true)
-	# TODO: default to 100 max_prev_node for now since data is encoded. 
+	# TODO: default to 100 max_prev_node for now since data is encoded.
 	max_prev_node = args["max_prev_node"] != -1 ? args["max_prev_node"] : 100
-	model = GraphRNN(max_prev_node, 
-		args["node_embedding_size"], 
-		args["edge_embedding_size"], 
-		args["node_hidden_size"], 
-		args["node_output_size"])  
+
+	model = Model(max_prev_node,
+		args["node_embedding_size"],
+		args["edge_embedding_size"],
+		args["node_hidden_size"],
+		args["node_output_size"])  |> gpu
 
 	if !isdir(args["checkpoints"])
 		mkdir(args["checkpoints"])
@@ -57,3 +58,16 @@ function main(config_path)
 end
 
 # main("configs/test.yaml")
+
+function test_rnn_epoch (epoch, rnn, output, max_num_node, max_prev_node, test_batch_size=16)
+	# TODO: init hidden layers and eval output
+
+	# generate graphs
+	y_prediction_long = fill(0.0, test_batch_size, max_num_node, max_prev_node) #|> gpu
+	x_steps = fill(1.0, test_batch_size, 1, max_prev_node)
+
+	for i in 1:max_num_node
+		h = rnn(x_steps)
+
+	end
+end
