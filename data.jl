@@ -179,13 +179,3 @@ function load_meta_data(file_name::String)
     return (max_num_node, max_prev_node, num_graphs)
 end
 
-
-# load_meta_data("train_ER_meta.jld")
-# (all_x, all_y, all_len) = load_dataset("train_ER_data.jld")
-# println(all_x[1])
-# println(all_y[1])
-# println(all_len[1])
-
-# create and load the data
-create_er_dataset(6, "Train_ER", 10,5,0.8,0.7)
-(x, y, len) = load_dataset("Train_ER_data.jld")

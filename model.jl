@@ -1,11 +1,11 @@
-using Flux
+using Flux, CUDA
 using Zygote: @adjoint, @showgrad, @nograd
 using LinearAlgebra
 
 mutable struct OutputModule 
-	output_layer::Chain
-	OutputModule(hidden_size, embedding_size, output_size) = new(Chain(Flux.Dense(hidden_size, embedding_size, relu), 
-		Flux.Dense(embedding_size, output_size, sigmoid)))
+	output_layer
+	OutputModule(hidden_size, embedding_size, output_size; device=cpu) = new(Chain(Flux.Dense(hidden_size, embedding_size, relu), 
+		Flux.Dense(embedding_size, output_size, sigmoid))) |> device
 end
 
 Flux.@functor OutputModule
@@ -22,12 +22,12 @@ mutable struct GRUBlock
 	output_module::OutputModule
 end
 
-GRUBlock(input_size, embedding_size, hidden_size; has_input=true, has_output=true, output_size=nothing) =
+GRUBlock(input_size, embedding_size, hidden_size; has_input=true, has_output=true, output_size=nothing, device=cpu) =
 	GRUBlock(has_input, 
 		has_output, 
-		Flux.Dense(input_size, embedding_size), 
-		GRU(embedding_size, hidden_size), 
-		OutputModule(hidden_size, embedding_size, output_size))
+		Flux.Dense(input_size, embedding_size) |> device, 
+		GRU(embedding_size, hidden_size) |> device, 
+		OutputModule(hidden_size, embedding_size, output_size; device=device))
 
 hidden(m::GRUBlock) = m.rnn.state
 
@@ -53,11 +53,13 @@ function (m::GRUBlock)(inp; hidden=nothing)
 end
 
 mutable struct GraphRNN 
+	device
 	graph_level::GRUBlock
 	edge_level::GRUBlock
-	GraphRNN(input_size, node_embedding_size, edge_embedding_size, node_hidden_size, node_output_size) = 
-		new(GRUBlock(input_size, node_embedding_size, node_hidden_size; output_size=node_output_size), 
-			GRUBlock(1, edge_embedding_size, node_output_size; output_size=1))
+	GraphRNN(input_size, node_embedding_size, edge_embedding_size, node_hidden_size, node_output_size; device=cpu) = 
+		new(device,
+			GRUBlock(input_size, node_embedding_size, node_hidden_size; output_size=node_output_size, device=device), 
+			GRUBlock(1, edge_embedding_size, node_output_size; output_size=1, device=device))
 
 end
 
@@ -73,10 +75,9 @@ function (m::GraphRNN)(inp)
 	inp2 = m.graph_level(inp)
 
 	partial = inp[:, 1:end- 1]
-	edge_inp = cat([fill(1.0, size(inp, 1)), partial]..., dims=2)
+	edge_inp = cat([fill(1.0, size(inp, 1)), partial]..., dims=2) |> m.device
 	edge_inp = reshape(edge_inp, (1, size(edge_inp)...))
 	edge_inp = [edge_inp[:, :, i] for i in 1:size(edge_inp, 3)]
-
 	inp2 = [inp2[:, i] for i in 1:size(inp2, 2)]
 	hidden_in = zip(inp2, edge_inp)
 	all_output = [m.edge_level(in_, hidden=hidden) for (hidden, in_) in hidden_in]
@@ -84,7 +85,6 @@ function (m::GraphRNN)(inp)
 	all_output = cat(all_output..., dims=1)
 	all_output = transpose(reshape(all_output, (n_nodes, :)))
 
-	println("done")
 	return all_output
 end
 
