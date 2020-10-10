@@ -1,6 +1,8 @@
 using Flux, CUDA
+using TensorBoardLogger
 import YAML
 using Dates
+using ProgressMeter
 using Statistics: mean
 using BSON: @save, @load
 
@@ -8,8 +10,26 @@ include("model.jl")
 include("data_helpers.jl")
 include("data.jl")
 
+function TBLogger(logger; kws...)
+	with_logger(logger) do 
+		for (k, v) in kws
+			#TODO: log information here
+		end
+	end
+end
 
-function train(model, lr, dataloader, epochs, resume_from=1, checkpoints_folder="", model_path=nothing)
+
+function test(testloader, loss_func)
+	total_loss = 0
+	iter = 0
+	for (x, y) in testloader
+		total_loss += loss_func(x, y)
+		iter += 1
+	end
+	@show "Test loss: $(total_loss/iter)"
+end
+
+function train(model, lr, trainloader, testloader, epochs, resume_from=1, checkpoints_folder="", model_path=nothing)
 	if model_path != nothing && ispath(model_path)
 		@load model_path model opt
 	else
@@ -19,13 +39,40 @@ function train(model, lr, dataloader, epochs, resume_from=1, checkpoints_folder=
 	loss(x, y) = mean(Flux.Losses.logitcrossentropy.(model.(x), y))
 	
 	for i in resume_from:epochs
-		Flux.train!(loss, pms, dataloader, opt)
-		println("Finish 1 epoch.")
+		# Train on entire dataset
+		p_train = Progress(length(trainloader),
+							dt=0.5, 
+							barglyphs=BarGlyphs("[=> ]"), 
+							barlen=50, 
+							color=:yellow)
+		total_loss = 0
+		for (x, y) in trainloader
+			loss_val = nothing
+			grads = gradient(pms) do 
+				loss_val = loss(x, y)
+			end
+			total_loss += loss_val
+			Flux.update!(opt, pms, grads)
+			ProgressMeter.next!(p_train; showvalues = [(:loss, loss_val)])
+		end
+		println("Training loss at iteration $(i + 1): $(total_loss/length(trainloader))")
+		p_test = Progress(length(testloader),
+							dt=0.5, 
+							barglyphs=BarGlyphs("[=> ]"), 
+							barlen=50, 
+							color=:green)	
+		total_loss = 0
+		for (x, y) in testloader 
+			loss_val = loss(x, y)
+			total_loss += loss_val
+			ProgressMeter.next!(p_test; showvalues = [(:loss, loss_val)])
+		end
+		println("Testing loss at iteration $(i + 1): $(total_loss/length(testloader))")
 
+		println("Saving model ...")
 		@save "$(checkpoints_folder)/model-$(Dates.now()).bson" model opt
-		println("Model saved.")
+		
 		Flux.reset!(model)
-		println("Reset.")
 	end
 end
 
@@ -34,29 +81,38 @@ function main(config_path)
 	#TODO fill in main here including loading data, train, test etc.
 	args = YAML.load_file(config_path)
 
-	x, y, len = load_dataset(args["data_path"]) |> gpu
-	x, y = [x[:, :, i] for i in 1:size(x, 3)], [y[:, :, i] for i in 1:size(y, 3)]
-	# x, y = [rand(28, 30) for i in 1:2], [rand(28, 30) for i in 1:2]
+	X_train, y_train, len_train = load_dataset(args["data"]["train"]) 
+	X_train, y_train = [X_train[:, :, i] for i in 1:size(X_train, 3)], [y_train[:, :, i] for i in 1:size(y_train, 3)]
+	
+	X_test, y_test, len_test = load_dataset(args["data"]["test"]) 
+	X_test, y_test = [X_test[:, :, i] for i in 1:size(X_test, 3)], [y_test[:, :, i] for i in 1:size(y_test, 3)]
 
-	@show size(x), size(y)
 
-	dataloader = Flux.Data.DataLoader((x, y), batchsize=args["batch_size"], shuffle=true)
+	train_loader = Flux.Data.DataLoader((X_train, y_train), batchsize=args["batch_size"], shuffle=true)
+	test_loader = Flux.Data.DataLoader((X_test, y_test), batchsize=args["batch_size"], shuffle=true)
 	# TODO: default to 100 max_prev_node for now since data is encoded.
 	max_prev_node = args["max_prev_node"] != -1 ? args["max_prev_node"] : 100
 
+	println("Training on $(length(X_train)) examples.")
+	println("Testing on $(length(X_test)) examples")
 	model = GraphRNN(max_prev_node,
 		args["node_embedding_size"],
 		args["edge_embedding_size"],
 		args["node_hidden_size"],
-		args["node_output_size"])  
+		args["node_output_size"]) 
 
 	if !isdir(args["checkpoints"])
 		mkdir(args["checkpoints"])
 	end
 
-	train(model, args["lr"], dataloader, args["epochs"], args["resume_from"], args["checkpoints"])
+	train(model, args["lr"], 
+		train_loader, 
+		test_loader,
+		args["epochs"], 
+		args["resume_from"], 
+		args["checkpoints"])
 
-end
+end;
 
 # main("configs/test.yaml")
 

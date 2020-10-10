@@ -84,7 +84,6 @@ function (m::GraphRNN)(inp)
 	all_output = cat(all_output..., dims=1)
 	all_output = transpose(reshape(all_output, (n_nodes, :)))
 
-	println("done")
 	return all_output
 end
 
