@@ -52,3 +52,19 @@ function er_graph(total_node=50, probability=0.01)
     temp = erdos_renyi(total_node, probability)
     return Graph(get_biggest_component_adj_matrix(temp))
 end
+
+function grid_2D_adj_matrix(num_row=20, num_col=10)
+    temp = grid([num_row, num_col])
+    return get_biggest_component_adj_matrix(temp)
+end
+
+function grid_2D_graph(num_row=20, num_col=10)
+    temp = grid([num_row, num_col])
+    return Graph(get_biggest_component_adj_matrix(temp))
+end
+
+function ladder_matrix(n=50)
+    # number of node = 2n, number of edges = 3n-2
+    temp = ladder_graph(n)
+    return get_biggest_component_adj_matrix(temp)
+end

@@ -64,6 +64,94 @@ function create_er_dataset(num_graphs=1000, file_name="train_ER", max_node=100, 
     save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
 end
 
+function create_grid_2D_dataset(num_graphs=1000, file_name="train_Grid_2D", max_row=20, min_row=5, max_col=20, min_col=5)
+    graph_dict = Dict()
+
+    max_num_node = 0
+    max_prev_node = 0
+    all_matrix = []
+    #  for each graph
+    for i = 1:num_graphs
+        # randomize parameters for ER graphs
+        num_row = rand(min_row:max_row)
+        num_col = rand(min_col:max_col)
+
+        # generate the graph
+        g = grid_2D_graph(num_row, num_col)
+
+        # add g's adjacency matrix to all_matrix array
+        push!(all_matrix, Matrix(adjacency_matrix(g)))
+
+        # update max_num_node
+        max_num_node = max(max_num_node, size(g,1))
+
+        # add g to our graph dict
+        graph_dict[i] = g
+    end
+
+    # find the max_prev_node
+    max_prev_node = find_max_prev_node(all_matrix, 100, 1) # 1 is root for bfs
+
+    # transform our matrix to training data.
+    (all_x, all_y, all_len) = transform(all_matrix, max_num_node, max_prev_node)
+
+    # save graph_dict to file
+    # savegraph(file_name, graph_dict)
+
+    # save meta data
+    meta_file_name = string(file_name, "_meta.jld")
+    save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
+
+    # save training data
+    training_file_name = string(file_name, "_data.jld")
+    save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
+end
+
+
+function create_ladder_dataset(num_graphs=1000, file_name="train_Ladder", max_n = 30, min_n = 10)
+    graph_dict = Dict()
+
+    max_num_node = 0
+    max_prev_node = 0
+    all_matrix = []
+    #  for each graph
+    for i = 1:num_graphs
+        # randomize parameters for ER graphs
+        n = rand(min_n:max_n) # number of node = 2n, number of edges = 3n-2
+
+        # generate the graph
+        g = ladder_graph(n)
+
+        # add g's adjacency matrix to all_matrix array
+        push!(all_matrix, Matrix(adjacency_matrix(g)))
+
+        # update max_num_node
+        max_num_node = max(max_num_node, size(g,1))
+
+        # add g to our graph dict
+        graph_dict[i] = g
+    end
+
+    # find the max_prev_node
+    max_prev_node = find_max_prev_node(all_matrix, 100, 1) # 1 is root for bfs
+
+    # transform our matrix to training data.
+    (all_x, all_y, all_len) = transform(all_matrix, max_num_node, max_prev_node)
+
+    # save graph_dict to file
+    # savegraph(file_name, graph_dict)
+
+    # save meta data
+    meta_file_name = string(file_name, "_meta.jld")
+    save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
+
+    # save training data
+    training_file_name = string(file_name, "_data.jld")
+    save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
+end
+
+
+
 
 # LOAD DATA FUNCTIONS ******************************************************
 #=
