@@ -11,7 +11,7 @@ edge_embedding_size: 8
 node_hidden_size: 128
 node_output_size: 16
 
-max_prev_node: 27
+max_prev_node: 38
 
 resume_from: 1
 
@@ -20,5 +20,5 @@ epochs: 100
 checkpoints: "checkpoints"
 model_path: # Add model path here
 tensorboard:
-  log: True
+  enable: True
   log_dir: "logs"

@@ -1,4 +1,5 @@
-using Flux, CUDA
+using Flux
+using Torch: torch
 using TensorBoardLogger
 import YAML
 using Dates
@@ -9,6 +10,15 @@ using BSON: @save, @load
 include("model.jl")
 include("data_helpers.jl")
 include("data.jl")
+
+if has_cuda()
+	@info "CUDA is on."
+	using CUDA
+	CUDA.allowscalar(false)
+	device = gpu
+else 
+	device = cpu
+end
 
 function TBLogger(logger; kws...)
 	with_logger(logger) do 
@@ -82,10 +92,12 @@ function main(config_path)
 	args = YAML.load_file(config_path)
 
 	X_train, y_train, len_train = load_dataset(args["data"]["train"]) 
-	X_train, y_train = [X_train[:, :, i] for i in 1:size(X_train, 3)], [y_train[:, :, i] for i in 1:size(y_train, 3)]
-	
+	X_train, y_train = [X_train[:, :, i] for i in 1:size(X_train, 3)] |> device, 
+	[y_train[:, :, i] for i in 1:size(y_train, 3)] |> device
+
 	X_test, y_test, len_test = load_dataset(args["data"]["test"]) 
-	X_test, y_test = [X_test[:, :, i] for i in 1:size(X_test, 3)], [y_test[:, :, i] for i in 1:size(y_test, 3)]
+	X_test, y_test = [X_test[:, :, i] for i in 1:size(X_test, 3)] |> device, 
+	[y_test[:, :, i] for i in 1:size(y_test, 3)] |> device
 
 
 	train_loader = Flux.Data.DataLoader((X_train, y_train), batchsize=args["batch_size"], shuffle=true)
@@ -95,11 +107,13 @@ function main(config_path)
 
 	println("Training on $(length(X_train)) examples.")
 	println("Testing on $(length(X_test)) examples")
+
 	model = GraphRNN(max_prev_node,
 		args["node_embedding_size"],
 		args["edge_embedding_size"],
 		args["node_hidden_size"],
-		args["node_output_size"]) 
+		args["node_output_size"];
+		device=device) |> torch
 
 	if !isdir(args["checkpoints"])
 		mkdir(args["checkpoints"])
