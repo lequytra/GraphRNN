@@ -81,13 +81,15 @@ function (m::GraphRNN)(inp)
 	edge_inp = cat([fill(1.0, size(inp, 1)), partial]..., dims=2)
 	edge_inp = reshape(edge_inp, (1, size(edge_inp)...))
 	edge_inp = [edge_inp[:, :, i] for i in 1:size(edge_inp, 3)]
+
+	# Turn hidden state matrix into list of vectors
 	inp2 = [inp2[:, i] for i in 1:size(inp2, 2)]
 	hidden_in = zip(inp2 |> m.device, edge_inp |> m.device)
 
 	all_output = [m.edge_level(in_, hidden=hidden) for (hidden, in_) in hidden_in]
 
 	all_output = cat(all_output..., dims=1)
-	all_output = transpose(reshape(all_output, (n_nodes, :)))
+	all_output = transpose(all_output)
 
 	return all_output
 end

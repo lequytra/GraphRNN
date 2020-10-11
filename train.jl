@@ -128,9 +128,8 @@ function main(config_path)
 
 end;
 
-# main("configs/test.yaml")
 
-function test_rnn_epoch (epoch, graph_level, edge_level, max_num_node, max_prev_node, test_batch_size=16)
+function test_rnn_epoch(epoch, graph_level, edge_level, max_num_node, max_prev_node; test_batch_size=16)
 	# we sample one graph at a time
 	test_sample_graphs = []
 
@@ -158,9 +157,9 @@ function test_rnn_epoch (epoch, graph_level, edge_level, max_num_node, max_prev_
 			for j in 1:min(max_prev_node, i)
 				# this could be just a number
 				edge_level_y_pred = edge_level(edge_level_x_step)
-				edge_level_x_step = sample_sigmoid(edge_level_y_pred, True, 0.5, 1)
+				edge_level_x_step = sample_sigmoid(edge_level_y_pred; sample=true, thresh=0.5, sample_time=1)
 				x_step[j] = edge_level_x_step
-				set_hidden!(edge_level, hidden(edge_level) # is this correct?
+				set_hidden!(edge_level, hidden(edge_level)) # is this correct?
 			end
 
 			y_pred[:, i] = x_step
@@ -171,13 +170,13 @@ function test_rnn_epoch (epoch, graph_level, edge_level, max_num_node, max_prev_
 		test_sample_graphs.append(Graph(decode_full(encoded_seq)))
 	end
 	return test_sample_graphs
-end
+end;
 
 
 # since we only work with batch size of 1, we can simplify this function a bit
 # compares to original version.
 # edge_level_y is expected to be a 2D matrix only
-function sample_sigmoid(edge_level_y, sample=True, thresh=0.5, sample_time=2)
+function sample_sigmoid(edge_level_y; sample=true, thresh=0.5, sample_time=2)
 	# calculate sigmoid
 	edge_level_y = sigmoid(edge_level_y)
 
