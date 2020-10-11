@@ -92,10 +92,3 @@ log_images(logger, "image/mnist/explicitinterface", images, step = 0)
 
 ################log images example: random arrays################
 noise = rand(16, 16, 3, 4) #Format is HWCN
-
-#using logger interface
-with_logger(logger) do
-    @info "image/noise/loggerinterface" random = TBImage(noise, HWCN)
-end
-#using explicit function interface
-log_image(logger, "image/noise/explicitinterface", noise, HWCN, step = 0)
