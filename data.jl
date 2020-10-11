@@ -195,7 +195,10 @@ out:    nothing, write 2 files:
                 and num_graphs
             file_name_data.jld holds training data: x, y, and len
 =#
-function create_sbm_dataset(num_graphs, file_name="train_sbm", max_num_vertices_per_community=60, min_num_vertices_per_community=40)
+function create_sbm_dataset(num_graphs;
+    file_name="train_sbm", 
+    max_num_vertices_per_community=60, 
+    min_num_vertices_per_community=40)
     graph_dict = Dict()
 
     max_num_node = 0

@@ -18,7 +18,10 @@ resume_from: 1
 
 epochs: 100
 
-checkpoints: "checkpoints"
+auto_resume: 
+  enable: True
+  checkpointsdir: "checkpoints"
+  model_path: "" # If model path is provided, checkpoint dir is ignored. 
 model_path: # Add model path here
 tensorboard:
   enable: True

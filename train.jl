@@ -20,6 +20,22 @@ else
 	device = cpu
 end
 
+function load_checkpoint(;path=nothing, checkpointdir="checkpoints")
+	model, opt, epoch = nothing, nothing, 1
+	if path != nothing
+		@load path model opt epoch 
+	elseif isdir(checkpointdir) 
+		try
+			path = maximum(readdir(checkpointdir))
+			@load path model opt epoch 
+		catch e 
+			continue
+		end
+	end
+	return model, opt, epoch
+end
+
+
 function TBLogger(logger; kws...)
 	with_logger(logger) do
 		for (k, v) in kws
@@ -39,10 +55,9 @@ function test(testloader, loss_func)
 	@show "Test loss: $(total_loss/iter)"
 end
 
-function train(model, lr, trainloader, testloader, epochs, resume_from=1, checkpoints_folder="", model_path=nothing)
-	if model_path != nothing && ispath(model_path)
-		@load model_path model opt
-	else
+function train(model, lr, trainloader, testloader, epochs, resume_from=1, opt=nothing)
+
+	if opt == nothing
 		opt = Flux.Optimise.ADAM(lr)
 	end
 
@@ -81,7 +96,7 @@ function train(model, lr, trainloader, testloader, epochs, resume_from=1, checkp
 		println("Testing loss at iteration $(i + 1): $(total_loss/length(testloader))")
 
 		println("Saving model ...")
-		@save "$(checkpoints_folder)/model-$(Dates.now()).bson" model opt
+		@save "$(checkpoints_folder)/model-$(Dates.now()).bson" model opt i
 	end
 end
 
@@ -106,24 +121,36 @@ function main(config_path)
 
 	println("Training on $(length(X_train)) examples.")
 	println("Testing on $(length(X_test)) examples")
-	model = GraphRNN(args["max_prev_node"],
-		args["node_embedding_size"],
-		args["edge_embedding_size"],
-		args["node_hidden_size"],
-		args["node_output_size"];
-		device=device) |> torch
+
+	model, opt, resume_epoch = nothing, nothing, 1
+
+	if args["auto_resume"]["enable"]
+		model_path = args["auto_resume"]["model_path"] != "" ? args["auto_resume"]["model_path"] : nothing
+		model, opt, resume_epoch = load_checkpoint(path=model_path, 
+			checkpointdir=args["auto_resume"]["checkpointdir"])
+	end
+
+	if model == nothing
+		model = GraphRNN(args["max_prev_node"],
+			args["node_embedding_size"],
+			args["edge_embedding_size"],
+			args["node_hidden_size"],
+			args["node_output_size"];
+			device=device) |> torch
 
 	if !isdir(args["checkpoints"])
 		mkdir(args["checkpoints"])
 	end
 
-
 	train(model, args["lr"],
 		train_loader,
 		test_loader,
-		args["epochs"],
-		args["resume_from"],
-		args["checkpoints"])
+		resume_args["epochs"],
+		resume_from=resume_epoch, 
+		opt=opt)
+
+	# Clear model's hidden state
+	Flux.reset!(model)
 
 	G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=20)
 
@@ -158,11 +185,9 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 				edge_level_y_pred = model.edge_level(edge_level_x_step, reset=false)
 				edge_level_x_step = sample_sigmoid(edge_level_y_pred; sample=true, thresh=0.5, sample_time=1)
 				x_step[j:j] = edge_level_x_step
-				# set_hidden!(edge_level, hidden(edge_level)) # is this correct?
 			end
 
 			y_pred[:, i] = x_step
-			# set_hidden!(graph_level, hidden(graph_level))
 			Flux.reset!(model)
 		end
 		println("y shape: $(size(y_pred))")
