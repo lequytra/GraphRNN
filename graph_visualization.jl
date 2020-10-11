@@ -1,9 +1,9 @@
 using LightGraphs
 
 using GraphRecipes, Plots
-using StochasticBlockModel
 
-using Cairo, Fontconfig
+import Cairo
+import Fontconfig
 using GraphPlot
 
 # HELPER FUNCTIONS *************************************************************
@@ -54,7 +54,7 @@ function grid_viz(g; file_name=nothing)
     end
 end
 
-function complete_bipartite_viz(g, node_fill_color=colorant"gray", node_stroke_color=colorant"black", edge_stroke_color=colorant"black"; file_name=nothing)
+function complete_bipartite_viz(g, node_fill_color=colorant"blue", node_stroke_color=colorant"black", edge_stroke_color=colorant"black"; file_name=nothing)
     locs_x, locs_y = bipartite_layout(g);
     # plot
     temp = gplot(g,
@@ -69,7 +69,7 @@ function complete_bipartite_viz(g, node_fill_color=colorant"gray", node_stroke_c
     end
 end
 
-function sbm_viz(g, node_fill_color=colorant"gray", node_stroke_color=colorant"black", edge_stroke_color=colorant"black"; file_name=nothing)
+function sbm_viz(g, node_fill_color=colorant"blue", node_stroke_color=colorant"black", edge_stroke_color=colorant"black"; file_name=nothing)
   # plot
     temp = gplot(g,
         nodefillc=node_fill_color,
