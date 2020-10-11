@@ -4,7 +4,7 @@ using GraphRecipes, Plots
 
 import Cairo
 import Fontconfig
-using GraphPlot
+using GraphPlot, Compose
 
 # HELPER FUNCTIONS *************************************************************
 function bipartite_layout(g)
@@ -100,4 +100,4 @@ sbm_g = stochastic_block_model(w, n_per_community)
 # ladder_viz(ladder_g, file_name="ladder.png")
 #grid_viz(grid_g, file_name="grid.png")
 #complete_bipartite_viz(complete_bipartite_g, file_name="cp.png")
-sbm_viz(sbm_g, file_name="sbm.png")
+#sbm_viz(sbm_g, file_name="sbm.png")
