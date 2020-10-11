@@ -5,9 +5,8 @@ include("graph_generator.jl")
 
 # DATA GENERTOR FUNCTIONS ******************************************************
 #=
-Create a dictionary where key is the index and value is a graph. Write graphs
-to a .lgz file. We also write meta data such as max_num_node and max_prev_node
-to .jld file.
+Create dataset for ER graphs along with a meta data file to store the information
+about this dataset.
 
 in:     num_graphs: int, number of ER graphs in this dataset
         file_name: file name WITHOUT extension
@@ -21,7 +20,7 @@ out:    nothing, write 2 files:
                 and num_graphs
             file_name_data.jld holds training data: x, y, and len
 =#
-function create_er_dataset(num_graphs=1000, file_name="train_ER", max_node=100, min_node=50, max_probability=0.8, min_probability=0.04)
+function create_er_dataset(num_graphs=1000, file_name="train_er", max_node=100, min_node=50, max_probability=0.8, min_probability=0.04)
     graph_dict = Dict()
 
     max_num_node = 0
@@ -64,7 +63,23 @@ function create_er_dataset(num_graphs=1000, file_name="train_ER", max_node=100, 
     save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
 end
 
-function create_grid_2D_dataset(num_graphs=1000, file_name="train_Grid_2D", max_row=20, min_row=5, max_col=20, min_col=5)
+#=
+Create dataset for grid graphs along with a meta data file to store the information
+about this dataset.
+
+in:     num_graphs: int, number of gird graphs in this dataset
+        file_name: file name WITHOUT extension
+        max_row: int, maximum number of nodes in a row
+        min_row: int, minimum number of nodes in a row
+        max_col: int, maximum number of nodes in a column
+        min_col:innt, maximum number of nodes in a column
+
+out:    nothing, write 2 files:
+            file_name_meta.jld holds meta data such as max_num_node, max_prev_node,
+                and num_graphs
+            file_name_data.jld holds training data: x, y, and len
+=#
+function create_grid_2D_dataset(num_graphs=1000, file_name="train_grid_2D", max_row=20, min_row=5, max_col=20, min_col=5)
     graph_dict = Dict()
 
     max_num_node = 0
@@ -72,7 +87,7 @@ function create_grid_2D_dataset(num_graphs=1000, file_name="train_Grid_2D", max_
     all_matrix = []
     #  for each graph
     for i = 1:num_graphs
-        # randomize parameters for ER graphs
+        # randomize parameters for the Grid graphs
         num_row = rand(min_row:max_row)
         num_col = rand(min_col:max_col)
 
@@ -107,8 +122,24 @@ function create_grid_2D_dataset(num_graphs=1000, file_name="train_Grid_2D", max_
     save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
 end
 
+#=
+Create dataset for ladder graphs along with a meta data file to store the information
+about this dataset.
 
-function create_ladder_dataset(num_graphs=1000, file_name="train_Ladder", max_n = 30, min_n = 10)
+in:     num_graphs: int, number of ladder graphs in this dataset
+        file_name: file name WITHOUT extension
+        max_n: int, maximum number of variable n
+        min_n: int, minimum number of variable n
+
+        the number of nodes = 2n
+        the number of edges = 3n - 2
+
+out:    nothing, write 2 files:
+            file_name_meta.jld holds meta data such as max_num_node, max_prev_node,
+                and num_graphs
+            file_name_data.jld holds training data: x, y, and len
+=#
+function create_ladder_dataset(num_graphs=1000, file_name="train_ladder", max_n = 30, min_n = 10)
     graph_dict = Dict()
 
     max_num_node = 0
@@ -116,7 +147,7 @@ function create_ladder_dataset(num_graphs=1000, file_name="train_Ladder", max_n 
     all_matrix = []
     #  for each graph
     for i = 1:num_graphs
-        # randomize parameters for ER graphs
+        # randomize parameters for the ladder graphs
         n = rand(min_n:max_n) # number of node = 2n, number of edges = 3n-2
 
         # generate the graph
@@ -150,10 +181,130 @@ function create_ladder_dataset(num_graphs=1000, file_name="train_Ladder", max_n 
     save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
 end
 
+#=
+Create dataset for stochastic block model graphs along with a meta data file to store the information
+about this dataset. Limited to 2 communities per graph.
+
+in:     num_graphs: int, number of sbm graphs in this dataset.
+        file_name: file name WITHOUT extension
+        max_num_vertices_per_community: int, maximum number of nodes in a community
+        min_num_vertices_per_community: int, minimum number of nodes in a community
+
+out:    nothing, write 2 files:
+            file_name_meta.jld holds meta data such as max_num_node, max_prev_node,
+                and num_graphs
+            file_name_data.jld holds training data: x, y, and len
+=#
+function create_sbm_dataset(num_graphs, file_name="train_sbm", max_num_vertices_per_community=60, min_num_vertices_per_community=40)
+    graph_dict = Dict()
+
+    max_num_node = 0
+    max_prev_node = 0
+    all_matrix = []
+    #  for each graph
+    for i = 1:num_graphs
+        # create parameter for the sbm graph
+        n_per_community = [0, 0]
+        n_per_community[1] = rand(min_num_vertices_per_community:max_num_vertices_per_community)
+        n_per_community[2] = rand(min_num_vertices_per_community:max_num_vertices_per_community)
+
+        ave_degrees = [n_per_community[1]/3 n_per_community[1]/180;
+                        n_per_community[2]/3 n_per_community[2]/180]
+
+        # generate the graph
+        g = sbm_graph(ave_degrees, n_per_community)
+
+        # add g's adjacency matrix to all_matrix array
+        push!(all_matrix, Matrix(adjacency_matrix(g)))
+
+        # update max_num_node
+        max_num_node = max(max_num_node, size(g,1))
+
+        # add g to our graph dict
+        graph_dict[i] = g
+    end
+
+    # find the max_prev_node
+    max_prev_node = find_max_prev_node(all_matrix, 100, 1) # 1 is root for bfs
+
+    # transform our matrix to training data.
+    (all_x, all_y, all_len) = transform(all_matrix, max_num_node, max_prev_node)
+
+    # save graph_dict to file
+    # savegraph(file_name, graph_dict)
+
+    # save meta data
+    meta_file_name = string(file_name, "_meta.jld")
+    save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
+
+    # save training data
+    training_file_name = string(file_name, "_data.jld")
+    save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
+end
+
+
+#=
+Create dataset for stochastic complete bipartite along with a meta data file to store the information
+about this dataset.
+
+in:     num_graphs: int, number of complete bipartite graphs in this dataset
+        file_name: file name WITHOUT extension
+        max_n1: int, maximum number of nodes in a partition 1
+        min_n1: int, minimum number of nodes in a partition 1
+        max_n2: int, maximum number of nodes in a partition 2
+        min_n2: int, minimum number of nodes in a partition 2
+
+out:    nothing, write 2 files:
+            file_name_meta.jld holds meta data such as max_num_node, max_prev_node,
+                and num_graphs
+            file_name_data.jld holds training data: x, y, and len
+=#
+function create_complete_bipartite_dataset(num_graphs, file_name="train_complete_bipartite", max_n1=20, min_n1=15, max_n2=20, min_n2=15)
+    graph_dict = Dict()
+
+    max_num_node = 0
+    max_prev_node = 0
+    all_matrix = []
+    #  for each graph
+    for i = 1:num_graphs
+        # create parameter for the complete bipartite graph
+        n1 = rand(min_n1: max_n1)
+        n2 = rand(min_n2: max_n2)
+
+        # generate the graph
+        g = complete_bipartite_graph(n1, n2)
+
+        # add g's adjacency matrix to all_matrix array
+        push!(all_matrix, Matrix(adjacency_matrix(g)))
+
+        # update max_num_node
+        max_num_node = max(max_num_node, size(g,1))
+
+        # add g to our graph dict
+        graph_dict[i] = g
+    end
+
+    # find the max_prev_node
+    max_prev_node = find_max_prev_node(all_matrix, 100, 1) # 1 is root for bfs
+
+    # transform our matrix to training data.
+    (all_x, all_y, all_len) = transform(all_matrix, max_num_node, max_prev_node)
+
+    # save graph_dict to file
+    # savegraph(file_name, graph_dict)
+
+    # save meta data
+    meta_file_name = string(file_name, "_meta.jld")
+    save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
+
+    # save training data
+    training_file_name = string(file_name, "_data.jld")
+    save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
+end
 
 
 
-# LOAD DATA FUNCTIONS ******************************************************
+# LOAD DATA FUNCTIONS **********************************************************
 #=
 Load dataset from a file
 
@@ -179,3 +330,6 @@ function load_meta_data(file_name::String)
     return (max_num_node, max_prev_node, num_graphs)
 end
 
+
+# test
+create_ladder_dataset(10)

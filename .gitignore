@@ -27,3 +27,6 @@ docs/site/
 Manifest.toml
 
 .idea/
+
+# don't add image file
+*.png
