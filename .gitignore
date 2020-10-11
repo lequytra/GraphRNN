@@ -30,3 +30,9 @@ Manifest.toml
 
 # don't add image file
 *.png
+
+# ignore tensorboard logs
+*logs/
+
+# ignore checkpoints
+checkpoints/
