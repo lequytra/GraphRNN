@@ -14,7 +14,6 @@ include("data.jl")
 if has_cuda()
 	@info "CUDA is on."
 	using CUDA
-	CUDA.allowscalar(false)
 	device = gpu
 else 
 	device = cpu
@@ -45,6 +44,7 @@ function train(model, lr, trainloader, testloader, epochs, resume_from=1, checkp
 	else
 		opt = Flux.Optimise.ADAM(lr)
 	end
+
 	pms = Flux.params(model)
 	loss(x, y) = mean(Flux.Losses.logitcrossentropy.(model.(x), y))
 	
