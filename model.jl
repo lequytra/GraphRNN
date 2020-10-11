@@ -2,8 +2,9 @@ using Flux, CUDA
 using Zygote: @adjoint, @showgrad, @nograd
 using LinearAlgebra
 
-mutable struct OutputModule 
+mutable struct OutputModule
 	output_layer
+
 	OutputModule(hidden_size, embedding_size, output_size; device=cpu) = new(Chain(Flux.Dense(hidden_size, embedding_size, relu), 
 		Flux.Dense(embedding_size, output_size, sigmoid)) |> device) 
 end
@@ -15,24 +16,24 @@ function (m::OutputModule)(x)
 end
 
 mutable struct GRUBlock
-	has_input::Bool 
-	has_output::Bool 
+	has_input::Bool
+	has_output::Bool
 	linear::Dense
 	rnn::Flux.Recur
 	output_module::OutputModule
 end
 
 GRUBlock(input_size, embedding_size, hidden_size; has_input=true, has_output=true, output_size=nothing, device=cpu) =
-	GRUBlock(has_input, 
-		has_output, 
-		Flux.Dense(input_size, embedding_size) |> device, 
-		GRU(embedding_size, hidden_size) |> device, 
+	GRUBlock(has_input,
+		has_output,
+		Flux.Dense(input_size, embedding_size) |> device,
+		GRU(embedding_size, hidden_size) |> device,
 		OutputModule(hidden_size, embedding_size, output_size; device=device))
 
 hidden(m::GRUBlock) = m.rnn.state
 
 function set_hidden!(m::GRUBlock, h)
-	m.rnn.state = h 
+	m.rnn.state = h
 end
 
 Flux.trainable(gru::GRUBlock) = (gru.linear, gru.rnn, gru.output_module)
@@ -49,26 +50,27 @@ function (m::GRUBlock)(inp; hidden=nothing)
 	if m.has_output
 		inp = m.output_module(inp)
 	end
-	return inp 
+	return inp
 end
 
-mutable struct GraphRNN 
+mutable struct GraphRNN
 	device
 	graph_level::GRUBlock
 	edge_level::GRUBlock
-	GraphRNN(input_size, node_embedding_size, edge_embedding_size, node_hidden_size, node_output_size; device=cpu) = 
+	GraphRNN(input_size, node_embedding_size, edge_embedding_size, node_hidden_size, node_output_size; device=cpu) =
 		new(device,
-			GRUBlock(input_size, node_embedding_size, node_hidden_size; output_size=node_output_size, device=device), 
+			GRUBlock(input_size, node_embedding_size, node_hidden_size; output_size=node_output_size, device=device),
 			GRUBlock(1, edge_embedding_size, node_output_size; output_size=1, device=device))
 
 end
 
 Flux.trainable(m::GraphRNN) = (m.graph_level, m.edge_level)
-function Flux.reset!(m::GraphRNN) 
-	Flux.reset!(m.graph_level)  
+function Flux.reset!(m::GraphRNN)
+	Flux.reset!(m.graph_level)
 	Flux.reset!(m.edge_level)
 end
 
+# re
 function (m::GraphRNN)(inp)
 	n_nodes = size(inp, 2)
 
