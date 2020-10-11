@@ -12,6 +12,7 @@ node_hidden_size: 128
 node_output_size: 16
 
 max_prev_node: 38
+max_num_node: 40
 
 resume_from: 1
 

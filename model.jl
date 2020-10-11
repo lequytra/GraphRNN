@@ -39,14 +39,17 @@ end
 Flux.trainable(gru::GRUBlock) = (gru.linear, gru.rnn, gru.output_module)
 Flux.reset!(gru::GRUBlock) = Flux.reset!(gru.rnn.state)
 
-function (m::GRUBlock)(inp; hidden=nothing)
+function (m::GRUBlock)(inp; hidden=nothing, reset=true)
 	if m.has_input
 		inp = m.linear(inp)
+		println("Dense output shape: $(size(inp))")
 	end
 	if hidden != nothing
 		set_hidden!(m, hidden)
 	end
+	println("Rnn input shape: $(size(inp))")
 	inp = m.rnn(inp)
+	Flux.reset!(m.rnn)
 	if m.has_output
 		inp = m.output_module(inp)
 	end
@@ -71,10 +74,10 @@ function Flux.reset!(m::GraphRNN)
 end
 
 # re
-function (m::GraphRNN)(inp)
+function (m::GraphRNN)(inp; reset=true)
 	n_nodes = size(inp, 2)
 
-	inp2 = m.graph_level(inp) |> cpu
+	inp2 = m.graph_level(inp, reset=true) |> cpu
 	inp = inp |> cpu
 
 	partial = inp[:, 1:end- 1]
@@ -86,7 +89,7 @@ function (m::GraphRNN)(inp)
 	inp2 = [inp2[:, i] for i in 1:size(inp2, 2)]
 	hidden_in = zip(inp2 |> m.device, edge_inp |> m.device)
 
-	all_output = [m.edge_level(in_, hidden=hidden) for (hidden, in_) in hidden_in]
+	all_output = [m.edge_level(in_, hidden=hidden, reset=true) for (hidden, in_) in hidden_in]
 
 	all_output = cat(all_output..., dims=1)
 	all_output = transpose(all_output)

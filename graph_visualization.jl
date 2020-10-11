@@ -96,8 +96,7 @@ n_per_community = [40; 40]
 sbm_g = stochastic_block_model(w, n_per_community)
 
 
-# save_simple_vizualization(g, "g1.png")
-# ladder_viz(ladder_g, file_name="ladder.png")
-#grid_viz(grid_g, file_name="grid.png")
-#complete_bipartite_viz(complete_bipartite_g, file_name="cp.png")
-#sbm_viz(sbm_g, file_name="sbm.png")
+ladder_viz(ladder_g, file_name="ladder.png")
+grid_viz(grid_g, file_name="grid.png")
+complete_bipartite_viz(complete_bipartite_g, file_name="cp.png")
+sbm_viz(sbm_g, file_name="sbm.png")

@@ -14,7 +14,8 @@ include("data.jl")
 if has_cuda()
 	@info "CUDA is on."
 	using CUDA
-	device = gpu
+	# Currently doesn't work on gpu so use cpu for now. 
+	device = cpu
 else
 	device = cpu
 end
@@ -81,8 +82,6 @@ function train(model, lr, trainloader, testloader, epochs, resume_from=1, checkp
 
 		println("Saving model ...")
 		@save "$(checkpoints_folder)/model-$(Dates.now()).bson" model opt
-
-		Flux.reset!(model)
 	end
 end
 
@@ -103,12 +102,11 @@ function main(config_path)
 	train_loader = Flux.Data.DataLoader((X_train, y_train), batchsize=args["batch_size"], shuffle=true)
 	test_loader = Flux.Data.DataLoader((X_test, y_test), batchsize=args["batch_size"], shuffle=true)
 	# TODO: default to 100 max_prev_node for now since data is encoded.
-	max_prev_node = args["max_prev_node"] != -1 ? args["max_prev_node"] : 100
+	max_prev_node = args["max_prev_node"] != -1 ? args["max_prev_node"] : 30
 
 	println("Training on $(length(X_train)) examples.")
 	println("Testing on $(length(X_test)) examples")
-
-	model = GraphRNN(max_prev_node,
+	model = GraphRNN(args["max_prev_node"],
 		args["node_embedding_size"],
 		args["edge_embedding_size"],
 		args["node_hidden_size"],
@@ -119,6 +117,7 @@ function main(config_path)
 		mkdir(args["checkpoints"])
 	end
 
+
 	train(model, args["lr"],
 		train_loader,
 		test_loader,
@@ -126,48 +125,50 @@ function main(config_path)
 		args["resume_from"],
 		args["checkpoints"])
 
+	G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=20)
+
 end;
 
 
-function test_rnn_epoch(epoch, graph_level, edge_level, max_num_node, max_prev_node; test_batch_size=16)
+function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 	# we sample one graph at a time
 	test_sample_graphs = []
 
 	for batch_id = 1:test_batch_size
 		# init hidden of graph level to 0 and set eval
-		set_hidden!(graph_level, fill(0.0, size(hidden(graph_level))))
+		set_hidden!(model.graph_level, fill(0.0, size(hidden(model.graph_level))))
 
 		# generate graphs
 		# shape of y_pred = matrix (max_prev_node X max_num_node)
 		# shape of x_pred = matrix (max_prev_node X 1)
 		y_pred = fill(0, max_prev_node, max_num_node)
-		x_step = fill(1, max_prev_node, 1)
+		x_step = fill(1, max_prev_node) # Edge step
 
 		for i in 1:max_num_node
-			h = edge_level(x_step)
+			# Predict next node
+			h = model.graph_level(x_step, reset=false) # max_prev_node x 1
+			set_hidden!(model.edge_level, h)
 
-			# these lines of code need to be check, we need to permute h and truncate
-			# hidden null to match the shape of hidden layers
-			hidden_null = fill(0, max_prev_node, max_num_node)
-			edge_level.hidden = cat(permute(h), hidden_null, dims=1)
-
-			x_step = fill(0, max_prev_node, max_num_node)
-			edge_level_x_step = fill(1, 1)
+			x_step = fill(0, max_prev_node) # (max_prev_node,)
+			edge_level_x_step = fill(1, (1, 1))
 
 			for j in 1:min(max_prev_node, i)
+				println(model.edge_level)
 				# this could be just a number
-				edge_level_y_pred = edge_level(edge_level_x_step)
+				edge_level_y_pred = model.edge_level(edge_level_x_step, reset=false)
 				edge_level_x_step = sample_sigmoid(edge_level_y_pred; sample=true, thresh=0.5, sample_time=1)
-				x_step[j] = edge_level_x_step
-				set_hidden!(edge_level, hidden(edge_level)) # is this correct?
+				x_step[j:j] = edge_level_x_step
+				# set_hidden!(edge_level, hidden(edge_level)) # is this correct?
 			end
 
 			y_pred[:, i] = x_step
-			set_hidden!(graph_level, hidden(graph_level))
+			# set_hidden!(graph_level, hidden(graph_level))
+			Flux.reset!(model)
 		end
+		println("y shape: $(size(y_pred))")
 		encoded_seq = convert(Array{Int64, 2}, y_pred)
 
-		test_sample_graphs.append(Graph(decode_full(encoded_seq)))
+		push!(test_sample_graphs, Graph(decode_full(encoded_seq)))
 	end
 	return test_sample_graphs
 end;
@@ -178,32 +179,30 @@ end;
 # edge_level_y is expected to be a 2D matrix only
 function sample_sigmoid(edge_level_y; sample=true, thresh=0.5, sample_time=2)
 	# calculate sigmoid
-	edge_level_y = sigmoid(edge_level_y)
+	edge_level_y = sigmoid.(edge_level_y)
 
 	# do sampling
 	if sample
 		if sample_time > 1
 			y_result = rand(size(edge_level_y)) # verify the shape of edge_level output
 
-			# since we only do one batch
-			for i in 1:1
-				# sample multiple time
-				for j in 1:sample_time
-					y_thresh = rand(size(edge_level_y))
-					y_result = map(>, y, y_thresh)
-					if sum(y_result) > 0
-						break
-					end
+			# sample multiple time
+			for j in 1:sample_time
+				y_thresh = rand(size(edge_level_y))
+				y_result = map(>, edge_level_y, y_thresh)
+				if sum(y_result) > 0
+					break
 				end
 			end
+
 		else
 			y_thresh = rand(size(edge_level_y))
-			y_result = map(>, y, y_thresh)
+			y_result = map(>, edge_level_y, y_thresh)
 		end
 	else
 		y_thresh = fill(1, size(edge_level_y)) .* thresh
-		y_result = map(>, y, y_thresh)
+		y_result = map(>, edge_level_y, y_thresh)
 	end
 	# notice that in our case y_result is only a 2D matrix
-	return y_result
+	return map(Int, y_result)
 end
