@@ -10,6 +10,7 @@ using BSON: @save, @load
 include("model.jl")
 include("data_helpers.jl")
 include("data.jl")
+include("graph_visualization.jl")
 
 if has_cuda()
 	@info "CUDA is on."
@@ -28,8 +29,9 @@ function load_checkpoint(;path=nothing, checkpointdir="checkpoints")
 	elseif isdir(checkpointdir) 
 		try
 			path = maximum(readdir(checkpointdir))
+			@load string(checkpointdir, "/", path) model opt epoch 
 			@info "Loading pre-trained model from $path"
-			@load path model opt epoch 
+
 		catch e 
 			@warn "No pre-trained weights found. Train/eval on random weights."
 		end
@@ -57,14 +59,14 @@ function test(testloader, loss_func)
 	@show "Test loss: $(total_loss/iter)"
 end
 
-function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=nothing)
+function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=nothing, checkpointsdir=nothing, eval_period=1)
 
 	if opt == nothing
 		opt = Flux.Optimise.ADAM(lr)
 	end
 
 	pms = Flux.params(model)
-	loss(x, y) = mean(Flux.Losses.logitcrossentropy.(model.(x), y))
+	loss(x, y) = mean(Flux.Losses.logitbinarycrossentropy.(model.(x), y))
 
 	for i in resume_from:epochs
 		# Train on entire dataset
@@ -81,24 +83,27 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 			end
 			total_loss += loss_val
 			Flux.update!(opt, pms, grads)
-			ProgressMeter.next!(p_train; showvalues = [(:loss, loss_val)])
+			ProgressMeter.next!(p_train; showvalues = [(:iter, i), (:loss, loss_val)])
 		end
 		println("Training loss at iteration $(i + 1): $(total_loss/length(trainloader))")
-		p_test = Progress(length(testloader),
-							dt=0.5,
-							barglyphs=BarGlyphs("[=> ]"),
-							barlen=50,
-							color=:green)
-		total_loss = 0
-		for (x, y) in testloader
-			loss_val = loss(x, y)
-			total_loss += loss_val
-			ProgressMeter.next!(p_test; showvalues = [(:loss, loss_val)])
+		if i % eval_period == 0
+			p_test = Progress(length(testloader),
+								dt=0.5,
+								barglyphs=BarGlyphs("[=> ]"),
+								barlen=50,
+								color=:green)
+			total_loss = 0
+			for (x, y) in testloader
+				loss_val = loss(x, y)
+				total_loss += loss_val
+				ProgressMeter.next!(p_test; showvalues = [(:iter, i), (:loss, loss_val)])
+			end
+			println("Testing loss at iteration $(i + 1): $(total_loss/length(testloader))")
 		end
-		println("Testing loss at iteration $(i + 1): $(total_loss/length(testloader))")
-
-		println("Saving model ...")
-		@save "$(checkpoints_folder)/model-$(Dates.now()).bson" model opt i
+			if checkpointsdir != nothing
+				println("Saving model ...")
+				@save "$(checkpointsdir)/model-$(Dates.now()).bson" model opt i
+			end
 	end
 end
 
@@ -146,18 +151,28 @@ function main(config_path)
 		mkdir(args["auto_resume"]["checkpointsdir"])
 	end
 
+	@info "Train for $(args["epochs"]) epochs."
+	
 	train(model, args["lr"],
 		train_loader,
 		test_loader,
 		args["epochs"],
 		resume_from=resume_epoch, 
-		opt=opt)
-
+		opt=opt,
+		checkpointsdir=args["auto_resume"]["checkpointsdir"],
+		eval_period=args["eval_period"])
+	
 	# Clear model's hidden state
 	Flux.reset!(model)
 
 	G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=20)
-
+	
+	if !isdir("predictions")
+		mkdir("predictions")
+	end
+	for (i, g) in enumerate(G_pred)
+		sbm_viz(g, file_name="predictions/$i.png")
+	end
 end;
 
 
@@ -165,7 +180,7 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 	# we sample one graph at a time
 	test_sample_graphs = []
 
-	for batch_id = 1:test_batch_size
+	@showprogress for batch_id = 1:test_batch_size
 		# init hidden of graph level to 0 and set eval
 		set_hidden!(model.graph_level, fill(0.0, size(hidden(model.graph_level))))
 
@@ -184,7 +199,6 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 			edge_level_x_step = fill(1, (1, 1))
 
 			for j in 1:min(max_prev_node, i)
-				println(model.edge_level)
 				# this could be just a number
 				edge_level_y_pred = model.edge_level(edge_level_x_step, reset=false)
 				edge_level_x_step = sample_sigmoid(edge_level_y_pred; sample=true, thresh=0.5, sample_time=1)
@@ -194,7 +208,6 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 			y_pred[:, i] = x_step
 			Flux.reset!(model)
 		end
-		println("y shape: $(size(y_pred))")
 		encoded_seq = convert(Array{Int64, 2}, y_pred)
 
 		push!(test_sample_graphs, Graph(decode_full(encoded_seq)))
