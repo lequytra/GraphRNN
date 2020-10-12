@@ -42,12 +42,10 @@ Flux.reset!(gru::GRUBlock) = Flux.reset!(gru.rnn.state)
 function (m::GRUBlock)(inp; hidden=nothing, reset=true)
 	if m.has_input
 		inp = m.linear(inp)
-		println("Dense output shape: $(size(inp))")
 	end
 	if hidden != nothing
 		set_hidden!(m, hidden)
 	end
-	println("Rnn input shape: $(size(inp))")
 	inp = m.rnn(inp)
 	Flux.reset!(m.rnn)
 	if m.has_output

@@ -1,6 +1,6 @@
 data:
-  train: "train_ER_data.jld"
-  test: "test_ER_data.jld"
+  train: "train_sbm_data.jld"
+  test: "test_sbm_data.jld"
 
 batch_size: 2
 test_batch_size: 2
@@ -11,8 +11,8 @@ edge_embedding_size: 8
 node_hidden_size: 128
 node_output_size: 16
 
-max_prev_node: 38
-max_num_node: 40
+max_prev_node: 135
+max_num_node: 160
 
 resume_from: 1
 

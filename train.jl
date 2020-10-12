@@ -23,13 +23,15 @@ end
 function load_checkpoint(;path=nothing, checkpointdir="checkpoints")
 	model, opt, epoch = nothing, nothing, 1
 	if path != nothing
+		@info "Loading pre-trained model from $path"
 		@load path model opt epoch 
 	elseif isdir(checkpointdir) 
 		try
 			path = maximum(readdir(checkpointdir))
+			@info "Loading pre-trained model from $path"
 			@load path model opt epoch 
 		catch e 
-			continue
+			@warn "No pre-trained weights found. Train/eval on random weights."
 		end
 	end
 	return model, opt, epoch
@@ -55,7 +57,7 @@ function test(testloader, loss_func)
 	@show "Test loss: $(total_loss/iter)"
 end
 
-function train(model, lr, trainloader, testloader, epochs, resume_from=1, opt=nothing)
+function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=nothing)
 
 	if opt == nothing
 		opt = Flux.Optimise.ADAM(lr)
@@ -127,7 +129,7 @@ function main(config_path)
 	if args["auto_resume"]["enable"]
 		model_path = args["auto_resume"]["model_path"] != "" ? args["auto_resume"]["model_path"] : nothing
 		model, opt, resume_epoch = load_checkpoint(path=model_path, 
-			checkpointdir=args["auto_resume"]["checkpointdir"])
+			checkpointdir=args["auto_resume"]["checkpointsdir"])
 	end
 
 	if model == nothing
@@ -137,15 +139,17 @@ function main(config_path)
 			args["node_hidden_size"],
 			args["node_output_size"];
 			device=device) |> torch
+	end
 
-	if !isdir(args["checkpoints"])
-		mkdir(args["checkpoints"])
+	if !isdir(args["auto_resume"]["checkpointsdir"])
+		@info "Model weights, optimizer and epoch index will be automatically saved to $(args["auto_resume"]["checkpointsdir"])"
+		mkdir(args["auto_resume"]["checkpointsdir"])
 	end
 
 	train(model, args["lr"],
 		train_loader,
 		test_loader,
-		resume_args["epochs"],
+		args["epochs"],
 		resume_from=resume_epoch, 
 		opt=opt)
 

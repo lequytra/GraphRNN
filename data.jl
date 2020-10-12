@@ -196,9 +196,9 @@ out:    nothing, write 2 files:
             file_name_data.jld holds training data: x, y, and len
 =#
 function create_sbm_dataset(num_graphs;
-    file_name="train_sbm", 
-    max_num_vertices_per_community=60, 
-    min_num_vertices_per_community=40)
+    file_name="sbm", 
+    max_num_vertices_per_community=80, 
+    min_num_vertices_per_community=30)
     graph_dict = Dict()
 
     max_num_node = 0
@@ -211,8 +211,8 @@ function create_sbm_dataset(num_graphs;
         n_per_community[1] = rand(min_num_vertices_per_community:max_num_vertices_per_community)
         n_per_community[2] = rand(min_num_vertices_per_community:max_num_vertices_per_community)
 
-        ave_degrees = [n_per_community[1]/3 n_per_community[1]/180;
-                        n_per_community[2]/3 n_per_community[2]/180]
+        ave_degrees = [n_per_community[1]*0.3 sum(n_per_community)*0.05;
+                        n_per_community[2]*0.3 sum(n_per_community)*0.05]
 
         # generate the graph
         g = sbm_graph(ave_degrees, n_per_community)
@@ -235,14 +235,17 @@ function create_sbm_dataset(num_graphs;
 
     # save graph_dict to file
     # savegraph(file_name, graph_dict)
-
+    n_train = Int(round(0.8 * num_graphs))
     # save meta data
     meta_file_name = string(file_name, "_meta.jld")
     save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
-
+    @info "Saving training and testing data... "
     # save training data
-    training_file_name = string(file_name, "_data.jld")
-    save(training_file_name, "all_x", all_x, "all_y", all_y, "all_len", all_len)
+    training_file_name = string("train_", file_name, "_data.jld")
+    save(training_file_name, "all_x", all_x[:, :, 1:n_train], "all_y", all_y[:, :, 1:n_train], "all_len", all_len[1:n_train])
+    testing_file_name = string("test_", file_name, "_data.jld")
+    save(testing_file_name, "all_x", all_x[:, :, (n_train+1):end], "all_y", all_y[:, :, (n_train+1):end], "all_len", all_len[(n_train+1):end])
+    @info "Done! max_prev_node: $(max_prev_node) \t max_num_node $(max_num_node) \t num_graphs $(num_graphs)"
 end
 
 
@@ -335,4 +338,4 @@ end
 
 
 # test
-create_ladder_dataset(10)
+# create_ladder_dataset(10)
