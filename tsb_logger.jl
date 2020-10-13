@@ -6,15 +6,18 @@ using Images, FileIO
 #=
 Create a new logger, logging to directory log_dir
 =#
-function  TB_set_up(log_dir, type_name)
+function  TB_set_up(log_dir, delete_old=true)
     # first, we clean the old log
-    try
-        run(string("rm -r", log_dir))
-    catch
-        # do nothing
+    if delete_old
+        try
+            run(string("rm -r", log_dir))
+        catch
+            # do nothing
+        end
     end
+    
     # create new TB logger
-    logger = TBLogger(type_name, tb_append)
+    logger = TBLogger(log_dir, tb_append)
     return logger
 end
 

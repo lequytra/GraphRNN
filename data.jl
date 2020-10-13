@@ -20,7 +20,14 @@ out:    nothing, write 2 files:
                 and num_graphs
             file_name_data.jld holds training data: x, y, and len
 =#
-function create_grid_dataset(num_graphs=1000, file_name="train_grid", max_row=10, min_row=5, max_col=10, min_col=5)
+function create_grid_dataset(num_graphs=1000;
+    file_name="train_grid",
+    for_training=true,
+    max_row=10,
+    min_row=5,
+    max_col=10,
+    min_col=5)
+
     graph_dict = Dict()
 
     max_num_node = 0
@@ -54,6 +61,14 @@ function create_grid_dataset(num_graphs=1000, file_name="train_grid", max_row=10
     # save graph_dict to file
     # savegraph(file_name, graph_dict)
     n_train = Int(round(num_graphs * 0.8))
+
+    # set file name based on purpose train or not
+    if for_training
+        file_name = string("train_", file_name)
+    else
+        file_name = string("test_", file_name)
+    end
+    
     # save meta data
     meta_file_name = string(file_name, "_meta.jld")
     save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
@@ -87,7 +102,13 @@ out:    nothing, write 2 files:
                 and num_graphs
             file_name_data.jld holds training data: x, y, and len
 =#
-function create_ladder_dataset(num_graphs=1000, file_name="train_ladder", max_n = 30, min_n = 10)
+function create_ladder_dataset(num_graphs=1000;
+    file_name="train_ladder",
+    for_training=true,
+    max_n = 30,
+    min_n = 10)
+
+
     graph_dict = Dict()
 
     max_num_node = 0
@@ -120,6 +141,14 @@ function create_ladder_dataset(num_graphs=1000, file_name="train_ladder", max_n 
     # save graph_dict to file
     # savegraph(file_name, graph_dict)
     n_train = Int(round(num_graphs * 0.8))
+
+    # set file name based on purpose train or not
+    if for_training
+        file_name = string("train_", file_name)
+    else
+        file_name = string("test_", file_name)
+    end
+
     # save meta data
     meta_file_name = string(file_name, "_meta.jld")
     save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
@@ -150,9 +179,12 @@ out:    nothing, write 2 files:
             file_name_data.jld holds training data: x, y, and len
 =#
 function create_sbm_dataset(num_graphs;
-    file_name="train_sbm",
+    file_name="sbm",
+    for_training=true,
     max_num_vertices_per_community=10,
     min_num_vertices_per_community=7)
+
+
     graph_dict = Dict()
 
     max_num_node = 0
@@ -190,10 +222,19 @@ function create_sbm_dataset(num_graphs;
     # save graph_dict to file
     # savegraph(file_name, graph_dict)
     n_train = Int(round(0.8 * num_graphs))
+
+    # set file name based on purpose train or not
+    if for_training
+        file_name = string("train_", file_name)
+    else
+        file_name = string("test_", file_name)
+    end
+
     # save meta data
     meta_file_name = string(file_name, "_meta.jld")
     save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
     @info "Saving training and testing data... "
+
     # save training data
     training_file_name = string("train_", file_name, "_data.jld")
     save(training_file_name, "all_x", all_x[:, :, 1:n_train], "all_y", all_y[:, :, 1:n_train], "all_len", all_len[1:n_train])
@@ -211,6 +252,7 @@ about this dataset.
 
 in:     num_graphs: int, number of complete bipartite graphs in this dataset
         file_name: file name WITHOUT extension
+        for_training: boolean, create for training or not
         max_n1: int, maximum number of nodes in a partition 1
         min_n1: int, minimum number of nodes in a partition 1
         max_n2: int, maximum number of nodes in a partition 2
@@ -221,7 +263,15 @@ out:    nothing, write 2 files:
                 and num_graphs
             file_name_data.jld holds training data: x, y, and len
 =#
-function create_complete_bipartite_dataset(num_graphs, file_name="train_complete_bipartite", max_n1=20, min_n1=15, max_n2=20, min_n2=15)
+function create_complete_bipartite_dataset(num_graphs;
+    file_name="complete_bipartite",
+    for_training=true,
+    max_n1=20,
+    min_n1=15,
+    max_n2=20,
+    min_n2=15)
+
+
     graph_dict = Dict()
 
     max_num_node = 0
@@ -254,6 +304,13 @@ function create_complete_bipartite_dataset(num_graphs, file_name="train_complete
 
     # save graph_dict to file
     # savegraph(file_name, graph_dict)
+
+    # set file name based on purpose train or not
+    if for_training
+        file_name = string("train_", file_name)
+    else
+        file_name = string("test_", file_name)
+    end
 
     # save meta data
     meta_file_name = string(file_name, "_meta.jld")
@@ -308,7 +365,6 @@ function load_dataset(file_name::String)
 
     return (all_x, all_y, all_len)
 end
-
 
 
 

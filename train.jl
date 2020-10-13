@@ -13,21 +13,7 @@ include("data.jl")
 include("graph_visualization.jl")
 include("tsb_logger.jl")
 
-
-const TRAIN_LOSS = "Train Loss"
-const TEST_IMG = "Test Images"
-const TEST_LOSS = "Test Loss"
 const TEMP_IMG_FILE_PATH = "temp.png"
-const SCALAR_LOG_DIR = "logs"
-const IMG_LOG_DIR = "Imgs_logs"
-
-
-
-
-# set up logger
-img_logger = TB_set_up(IMG_LOG_DIR, "imagelogs")
-scalar_logger = TB_set_up(SCALAR_LOG_DIR, "scalarlogs")
-
 
 
 
@@ -79,7 +65,13 @@ end
 
 # training time
 function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=nothing, checkpointsdir=nothing, eval_period=1)
+	# create TB logger
+	if args["TBlog"]["enable"]
+		logger = TB_set_up(args["TBlog"]["log_dir"])
+		println(string("Created TB logger, logging to: ", args["TBlog"]["log_dir"]));
+	end
 
+	# set up optimizer if we don't have any
 	if opt == nothing
 		opt = Flux.Optimise.ADAM(lr)
 	end
@@ -87,6 +79,7 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 	pms = Flux.params(model)
 	loss(x, y) = mean(Flux.Losses.logitbinarycrossentropy.(model.(x, reset=true), y))
 
+	# for each epoch
 	for i in resume_from:epochs
 		# Train on entire dataset
 		p_train = Progress(length(trainloader),
@@ -107,12 +100,14 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 
 		# printing training loss
 		println("Training loss at iteration $(i): $(total_loss/length(trainloader))")
-		#TB_log_scalar(scalar_logger, TRAIN_LOSS, total_loss/length(trainloader), i)
+
+		# log training loss:
+		if args["TBlog"]["enable"] && i % args["TBlog"]["train_loss_log_period"] == 0
+			TB_log_scalar(logger, args["TBlog"]["training_loss_tag"], total_loss/length(trainloader), i)
+			println("Log training loss")
+		end
 
 		if i % eval_period == 0
-
-			# quickly log training loss before the variable is used to hold test loss
-			TB_log_scalar(scalar_logger, TRAIN_LOSS, total_loss/length(trainloader), i)
 
 			p_test = Progress(length(testloader),
 								dt=0.5,
@@ -128,9 +123,16 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 
 			# printing and logging testing loss
 			println("Testing loss at iteration $(i): $(total_loss/length(testloader))")
-			TB_log_scalar(scalar_logger, TEST_LOSS, total_loss/length(testloader), i)
 
-			# Test output image
+			# log test loss
+			if args["TBlog"]["enable"] && i % args["Tblog"]["test_loss_log_period"] == 0
+				TB_log_scalar(logger, args["TBlog"]["test_loss_tag"], total_loss/length(trainloader), i)
+				println("Log test loss")
+			end
+		end
+
+		# Log test image
+		if args["TBlog"]["enable"] && i % args["Tblog"]["img_log_period"] == 0
 			G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=1)
 
 			# Write image to TEMP_IMG_FILE_PATH
@@ -138,13 +140,15 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 			graph_viz(G_pred[1], "sbm", TEMP_IMG_FILE_PATH)
 
 			# Log image from TEMP_IMG_FILE_PATH
-			TB_log_img(img_logger, TEST_IMG, TEMP_IMG_FILE_PATH, i)
-			
+			TB_log_img(logger, args["TBlog"]["img_tag"], TEMP_IMG_FILE_PATH, i)
+			println("Log")
 		end
-			if checkpointsdir != nothing && i % 100 == 0
-				println("Saving model ...")
-				@save "$(checkpointsdir)/model-$(Dates.now()).bson" model opt i
-			end
+
+
+		if checkpointsdir != nothing && i % 100 == 0
+			println("Saving model ...")
+			@save "$(checkpointsdir)/model-$(Dates.now()).bson" model opt i
+		end
 	end
 end
 

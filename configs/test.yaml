@@ -18,11 +18,22 @@ resume_from: 1
 
 epochs: 100
 
-auto_resume: 
+auto_resume:
   enable: True
   checkpointsdir: "checkpoints"
-  model_path: "" # If model path is provided, checkpoint dir is ignored. 
+  model_path: "" # If model path is provided, checkpoint dir is ignored.
 model_path: # Add model path here
-tensorboard:
+
+eval_period: 1
+
+TBlog:
   enable: True
   log_dir: "logs"
+  img_log_period: 1
+  img_tag: "Test Images"
+
+  train_loss_log_period: 1
+  train_loss_tag: "Training Loss"
+
+  test_loss_log_period: 1
+  test_loss_tag: "Testing Loss"
