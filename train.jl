@@ -22,21 +22,21 @@ else
 end
 
 function load_checkpoint(;path=nothing, checkpointdir="checkpoints")
-	model, opt, epoch = nothing, nothing, 1
+	model, opt, i = nothing, nothing, 1
 	if path != nothing
 		@info "Loading pre-trained model from $path"
 		@load path model opt epoch 
 	elseif isdir(checkpointdir) 
 		try
 			path = maximum(readdir(checkpointdir))
-			@load string(checkpointdir, "/", path) model opt epoch 
+			@load string(checkpointdir, "/", path) model opt i
 			@info "Loading pre-trained model from $path"
 
 		catch e 
 			@warn "No pre-trained weights found. Train/eval on random weights."
 		end
 	end
-	return model, opt, epoch
+	return model, opt, i
 end
 
 
@@ -85,7 +85,7 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 			Flux.update!(opt, pms, grads)
 			ProgressMeter.next!(p_train; showvalues = [(:iter, i), (:loss, loss_val)])
 		end
-		println("Training loss at iteration $(i + 1): $(total_loss/length(trainloader))")
+		println("Training loss at iteration $(i): $(total_loss/length(trainloader))")
 		if i % eval_period == 0
 			p_test = Progress(length(testloader),
 								dt=0.5,
@@ -98,7 +98,7 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 				total_loss += loss_val
 				ProgressMeter.next!(p_test; showvalues = [(:iter, i), (:loss, loss_val)])
 			end
-			println("Testing loss at iteration $(i + 1): $(total_loss/length(testloader))")
+			println("Testing loss at iteration $(i): $(total_loss/length(testloader))")
 		end
 			if checkpointsdir != nothing && i % 100 == 0
 				println("Saving model ...")
