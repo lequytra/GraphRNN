@@ -21,7 +21,7 @@ out:    nothing, write 2 files:
             file_name_data.jld holds training data: x, y, and len
 =#
 function create_grid_dataset(num_graphs=1000;
-    file_name="train_grid",
+    file_name="grid",
     for_training=true,
     max_row=10,
     min_row=5,
@@ -68,7 +68,7 @@ function create_grid_dataset(num_graphs=1000;
     else
         file_name = string("test_", file_name)
     end
-    
+
     # save meta data
     meta_file_name = string(file_name, "_meta.jld")
     save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)
@@ -103,7 +103,7 @@ out:    nothing, write 2 files:
             file_name_data.jld holds training data: x, y, and len
 =#
 function create_ladder_dataset(num_graphs=1000;
-    file_name="train_ladder",
+    file_name="ladder",
     for_training=true,
     max_n = 30,
     min_n = 10)
