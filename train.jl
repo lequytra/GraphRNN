@@ -11,28 +11,51 @@ include("model.jl")
 include("data_helpers.jl")
 include("data.jl")
 include("graph_visualization.jl")
+include("tsb_logger.jl")
 
+
+const TRAIN_LOSS = "Train Loss"
+const TEST_IMG = "Test Images"
+const TEST_LOSS = "Test Loss"
+const TEMP_IMG_FILE_PATH = "temp.png"
+const SCALAR_LOG_DIR = "logs"
+const IMG_LOG_DIR = "Imgs_logs"
+
+
+
+
+# set up logger
+img_logger = TB_set_up(IMG_LOG_DIR, "imagelogs")
+scalar_logger = TB_set_up(SCALAR_LOG_DIR, "scalarlogs")
+
+
+
+
+# set up training device
 if has_cuda()
 	@info "CUDA is on."
 	using CUDA
-	# Currently doesn't work on gpu so use cpu for now. 
+	# Currently doesn't work on gpu so use cpu for now.
 	device = cpu
 else
 	device = cpu
 end
 
+
+
+# load checkpoints
 function load_checkpoint(;path=nothing, checkpointdir="checkpoints")
 	model, opt, i = nothing, nothing, 1
 	if path != nothing
 		@info "Loading pre-trained model from $path"
-		@load path model opt epoch 
-	elseif isdir(checkpointdir) 
+		@load path model opt epoch
+	elseif isdir(checkpointdir)
 		try
 			path = maximum(readdir(checkpointdir))
 			@load string(checkpointdir, "/", path) model opt i
 			@info "Loading pre-trained model from $path"
 
-		catch e 
+		catch e
 			@warn "No pre-trained weights found. Train/eval on random weights."
 		end
 	end
@@ -40,15 +63,8 @@ function load_checkpoint(;path=nothing, checkpointdir="checkpoints")
 end
 
 
-function TBLogger(logger; kws...)
-	with_logger(logger) do
-		for (k, v) in kws
-			#TODO: log information here
-		end
-	end
-end
 
-
+# test loader
 function test(testloader, loss_func)
 	total_loss = 0
 	iter = 0
@@ -59,6 +75,9 @@ function test(testloader, loss_func)
 	@show "Test loss: $(total_loss/iter)"
 end
 
+
+
+# training time
 function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=nothing, checkpointsdir=nothing, eval_period=1)
 
 	if opt == nothing
@@ -85,8 +104,16 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 			Flux.update!(opt, pms, grads)
 			ProgressMeter.next!(p_train; showvalues = [(:iter, i), (:loss, loss_val)])
 		end
+
+		# printing training loss
 		println("Training loss at iteration $(i): $(total_loss/length(trainloader))")
+		#TB_log_scalar(scalar_logger, TRAIN_LOSS, total_loss/length(trainloader), i)
+
 		if i % eval_period == 0
+
+			# quickly log training loss before the variable is used to hold test loss
+			TB_log_scalar(scalar_logger, TRAIN_LOSS, total_loss/length(trainloader), i)
+
 			p_test = Progress(length(testloader),
 								dt=0.5,
 								barglyphs=BarGlyphs("[=> ]"),
@@ -98,7 +125,21 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 				total_loss += loss_val
 				ProgressMeter.next!(p_test; showvalues = [(:iter, i), (:loss, loss_val)])
 			end
+
+			# printing and logging testing loss
 			println("Testing loss at iteration $(i): $(total_loss/length(testloader))")
+			TB_log_scalar(scalar_logger, TEST_LOSS, total_loss/length(testloader), i)
+
+			# Test output image
+			G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=1)
+
+			# Write image to TEMP_IMG_FILE_PATH
+			# "sbm" can be replaced by "ladder", "grid", "complete_bipartite"
+			graph_viz(G_pred[1], "sbm", TEMP_IMG_FILE_PATH)
+
+			# Log image from TEMP_IMG_FILE_PATH
+			TB_log_img(img_logger, TEST_IMG, TEMP_IMG_FILE_PATH, i)
+			
 		end
 			if checkpointsdir != nothing && i % 100 == 0
 				println("Saving model ...")
@@ -108,6 +149,8 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 end
 
 
+
+# main
 function main(config_path)
 	#TODO fill in main here including loading data, train, test etc.
 	args = YAML.load_file(config_path)
@@ -133,7 +176,7 @@ function main(config_path)
 
 	if args["auto_resume"]["enable"]
 		model_path = args["auto_resume"]["model_path"] != "" ? args["auto_resume"]["model_path"] : nothing
-		model, opt, resume_epoch = load_checkpoint(path=model_path, 
+		model, opt, resume_epoch = load_checkpoint(path=model_path,
 			checkpointdir=args["auto_resume"]["checkpointsdir"])
 	end
 
@@ -157,24 +200,28 @@ function main(config_path)
 		train_loader,
 		test_loader,
 		args["epochs"],
-		resume_from=resume_epoch, 
+		resume_from=resume_epoch,
 		opt=opt,
 		checkpointsdir=args["auto_resume"]["checkpointsdir"],
 		eval_period=args["eval_period"])
-	
+
 	# Clear model's hidden state
 	Flux.reset!(model)
 
 	G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=20)
-	
+
 	if !isdir("predictions")
 		mkdir("predictions")
 	end
+
+
 	for (i, g) in enumerate(G_pred)
 		grid_viz(g, file_name="predictions/$i.png")
 	end
 	@save "prediction_result.bson" G_pred
 end;
+
+
 
 
 function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
@@ -218,6 +265,8 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 	end
 	return test_sample_graphs
 end;
+
+
 
 
 # since we only work with batch size of 1, we can simplify this function a bit

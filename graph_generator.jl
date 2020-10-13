@@ -60,12 +60,12 @@ end
 
 
 # Grid network
-function grid_2D_adj_matrix(num_row=15, num_col=5)
+function grid_adj_matrix(num_row=15, num_col=5)
     temp = Grid([num_row, num_col])
     return get_biggest_component_adj_matrix(temp)
 end
 
-function grid_2D_graph(num_row=15, num_col=5)
+function grid_graph(num_row=15, num_col=5)
     temp = Grid([num_row, num_col])
     return Graph(get_biggest_component_adj_matrix(temp))
 end
