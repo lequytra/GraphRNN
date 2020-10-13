@@ -66,7 +66,7 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 	end
 
 	pms = Flux.params(model)
-	loss(x, y) = mean(Flux.Losses.logitbinarycrossentropy.(model.(x), y))
+	loss(x, y) = mean(Flux.Losses.logitbinarycrossentropy.(model.(x, reset=true), y))
 
 	for i in resume_from:epochs
 		# Train on entire dataset
@@ -100,7 +100,7 @@ function train(model, lr, trainloader, testloader, epochs; resume_from=1, opt=no
 			end
 			println("Testing loss at iteration $(i + 1): $(total_loss/length(testloader))")
 		end
-			if checkpointsdir != nothing
+			if checkpointsdir != nothing && i % 100 == 0
 				println("Saving model ...")
 				@save "$(checkpointsdir)/model-$(Dates.now()).bson" model opt i
 			end
@@ -152,7 +152,7 @@ function main(config_path)
 	end
 
 	@info "Train for $(args["epochs"]) epochs."
-	
+
 	train(model, args["lr"],
 		train_loader,
 		test_loader,
@@ -171,8 +171,9 @@ function main(config_path)
 		mkdir("predictions")
 	end
 	for (i, g) in enumerate(G_pred)
-		sbm_viz(g, file_name="predictions/$i.png")
+		grid_viz(g, file_name="predictions/$i.png")
 	end
+	@save "prediction_result.bson" G_pred
 end;
 
 
@@ -193,6 +194,7 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 		for i in 1:max_num_node
 			# Predict next node
 			h = model.graph_level(x_step, reset=false) # max_prev_node x 1
+
 			set_hidden!(model.edge_level, h)
 
 			x_step = fill(0, max_prev_node) # (max_prev_node,)
@@ -201,7 +203,7 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 			for j in 1:min(max_prev_node, i)
 				# this could be just a number
 				edge_level_y_pred = model.edge_level(edge_level_x_step, reset=false)
-				edge_level_x_step = sample_sigmoid(edge_level_y_pred; sample=true, thresh=0.5, sample_time=1)
+				edge_level_x_step = sample_sigmoid(edge_level_y_pred; sample=false, thresh=0.555, sample_time=1)
 				x_step[j:j] = edge_level_x_step
 			end
 
@@ -209,8 +211,10 @@ function test_rnn_epoch(model, max_num_node, max_prev_node; test_batch_size=16)
 			Flux.reset!(model)
 		end
 		encoded_seq = convert(Array{Int64, 2}, y_pred)
+		g = Graph(decode_full(transpose(encoded_seq)))
+		@show ne(g)/(nv(g)^2)
+		push!(test_sample_graphs, g)
 
-		push!(test_sample_graphs, Graph(decode_full(encoded_seq)))
 	end
 	return test_sample_graphs
 end;
