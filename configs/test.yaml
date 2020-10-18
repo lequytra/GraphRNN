@@ -1,6 +1,6 @@
 data:
-  train: "train_sbm_data.jld"
-  test: "test_sbm_data.jld"
+  train: "train_grid_data.jld"
+  test: "test_grid_data.jld"
 
 batch_size: 2
 test_batch_size: 2
@@ -11,18 +11,18 @@ edge_embedding_size: 8
 node_hidden_size: 128
 node_output_size: 16
 
-max_prev_node: 135
-max_num_node: 160
+max_prev_node: 6
+max_num_node: 25
 
 resume_from: 1
 
 epochs: 100
 
 auto_resume:
-  enable: True
+  enable: False
   checkpointsdir: "checkpoints"
+  save_model: 10
   model_path: "" # If model path is provided, checkpoint dir is ignored.
-model_path: # Add model path here
 
 eval_period: 1
 
@@ -32,8 +32,7 @@ TBlog:
   img_log_period: 1
   img_tag: "Test Images"
 
-  train_loss_log_period: 1
-  train_loss_tag: "Training Loss"
+  train_loss_tag: "Training/Loss"
 
   test_loss_log_period: 1
-  test_loss_tag: "Testing Loss"
+  test_loss_tag: "Testing/Loss"

@@ -62,13 +62,6 @@ function create_grid_dataset(num_graphs=1000;
     # savegraph(file_name, graph_dict)
     n_train = Int(round(num_graphs * 0.8))
 
-    # set file name based on purpose train or not
-    if for_training
-        file_name = string("train_", file_name)
-    else
-        file_name = string("test_", file_name)
-    end
-
     # save meta data
     meta_file_name = string(file_name, "_meta.jld")
     save(meta_file_name, "max_prev_node", max_prev_node, "max_num_node", max_num_node, "num_graphs", num_graphs)

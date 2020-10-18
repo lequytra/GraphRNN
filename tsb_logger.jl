@@ -18,6 +18,7 @@ function  TB_set_up(log_dir, delete_old=true)
     
     # create new TB logger
     logger = TBLogger(log_dir, tb_append)
+    @info "Log to Tensorboard at $log_dir"
     return logger
 end
 
