@@ -9,15 +9,18 @@ GraphRNN is released under the [GNU General Public License](LICENSE).
 
 ## Overview
 The project has the following files:
-* data_helper.jl (support file): handling encode/decode adjacency matrix, BFS ordering, transforming list of adjacency matrix to training format.
-* graph_generator.jl (support file): generating different types of graph and other utilities such as getting the biggest component.
-* graph_visualization.jl (support file): handling graph visualization.
-* tsb_logger.jl (support file): handling creating TensorBoard logger, used in train.jl.
-* configs/test.yaml: containing configuration parameters, can be directly modified based on the need of user.
-
-* data.jl (main file): creating/loading data sets for different type of graphs.
-* model.jl (main file): containing GraphRNN model definition.
-* train.jl (main file): containing the main function which handles loading the data set, training, and inferencing. 
+* [data_helper.jl](https://github.com/lequytra/GraphRNN/blob/master/data_helpers.jl) (support file): handling encode/decode adjacency matrix, BFS ordering, transforming list of adjacency matrix to training format.
+* [graph_generator.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_generator.jl) (support file): generating different types of graph and other utilities such as getting the biggest component.
+  * include [data_helper.jl](https://github.com/lequytra/GraphRNN/blob/master/data_helpers.jl)
+* [graph_visualization.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_visualization.jl) (support file): handling graph visualization.
+* [tsb_logger.jl](https://github.com/lequytra/GraphRNN/blob/master/tsb_logger.jl) (support file): handling creating TensorBoard logger, used in train.jl.
+* [configs/test.yaml](https://github.com/lequytra/GraphRNN/blob/master/configs/test.yaml): containing configuration parameters, can be directly modified based on the need of user.  
+  
+* [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl) (main file): creating/loading data sets for different type of graphs.
+  * include [graph_generator.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_generator.jl)
+* [model.jl](https://github.com/lequytra/GraphRNN/blob/master/model.jl) (main file): containing GraphRNN model definition.
+* [train.jl](https://github.com/lequytra/GraphRNN/blob/master/model.jl) (main file): containing the main function which handles loading the data set, training, and inferencing. 
+  * include [data_helper.jl](https://github.com/lequytra/GraphRNN/blob/master/data_helpers.jl), [graph_visualization.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_visualization.jl), [tsb_logger.jl](https://github.com/lequytra/GraphRNN/blob/master/tsb_logger.jl), [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl), [model.jl](https://github.com/lequytra/GraphRNN/blob/master/model.jl).
 
 ## Installation
 
@@ -36,7 +39,7 @@ Pkg.add("Random")
 # include packages
 using FileIO, Flux, LightGraphs, LinearAlgebra, Random
 ```
-* For model and training (recommend install after installing packages for data and graph generating files): BSON, CUDA, Dates, Flux, LinearAlgebra, ProgressMeter, Statistics, TensorBoardLogger, Torch, YAML, Zygote. 
+For model and training (recommend install after installing packages for data and graph generating files): BSON, CUDA, Dates, Flux, LinearAlgebra, ProgressMeter, Statistics, TensorBoardLogger, Torch, YAML, Zygote. 
 ```
 # installing packages
 using Pkg
@@ -76,7 +79,7 @@ import Cairo
 import Fontconfig
 using LightGraphs, GraphRecipes, Plots, GraphPlot, Compose
 ```
-Since the model and training also use files that involves data processing, it is recommended that you include packages for data before using model and training files.
+Since the model and training also use files that involves data processing, it is recommended that you include packages for data before using model and training files.  
 
 ## Generate Dataset
 
