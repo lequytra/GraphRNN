@@ -1,7 +1,10 @@
 using LightGraphs
 include("data_helpers.jl")
 include("graph_generator.jl")
+include("data.jl")
+include("graph_visualization.jl")
 
+# Not important. Just to test implementation of different files.
 
 # test encode / decode: check
 function test_encode_decode_er()
@@ -60,3 +63,20 @@ end
 # adj = er_adj_matrix(10, 0.1)
 # adj = bfs_adj_matrix(adj)
 # adj = test_encode_decode_full_er_w_input(adj)
+
+# for i = 1:1
+#     # w = [6.0 0.1;0.1 8.0]
+#     # n_per_community = [40; 40]
+#     # g = stochastic_block_model(w, n_per_community)
+#
+#     # sbm_viz(g, file_name=string("sbm",i,".png"))
+#
+#     # g = Grid([10,10])
+#     # grid_viz(g, file_name="Grid.png")
+#
+#     g = ladder_graph(10)
+#     ladder_viz(g, file_name="ladder.png")
+#
+#     g = complete_bipartite_graph(4,6)
+#     complete_bipartite_viz(g, file_name="cb.png")
+# end

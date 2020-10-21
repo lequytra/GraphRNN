@@ -3,12 +3,29 @@ using Random
 using LightGraphs
 using Flux
 
+#=
+Function list:
+
+encode_full(adj_matrix, max_prev_node=nothing, is_full = false)
+decode_full()
+=#
+
+
 # ENCODE or DECODE *************************************************************
 #=
 Generate a sequences of step to construct the given adj_matrix.
 A step in this case is an array with fixed size.
 
 This can be decoded by decode_full function
+
+Params:
+    adj_matrix: Array{Int64, 2}: adjacency_matrix of a graph
+    max_prev_node: Int: the max_length of the step sequence
+    is_full: boolean
+
+Return:
+    sequence of construction steps: Array{Int64, 2}: each has length = max_prev_node,
+    the number of construction steps is the number of vertices - 1.
 =#
 function encode_full(adj_matrix, max_prev_node=nothing, is_full = false)
     if max_prev_node == nothing || is_full
@@ -46,9 +63,17 @@ function encode_full(adj_matrix, max_prev_node=nothing, is_full = false)
 end
 
 
+
 #=
 Create adjacency matrix from the given encoded_matrix. The encoded_matrix is
-created from encode_full function.
+created from encode_full() function.
+
+Params:
+    equence of construction steps: Array{Int64, 2}: each has length = max_prev_node,
+        the number of construction steps is the number of vertices - 1.
+
+Returns:
+    adj_matrix: Array{Int64, 2}: adjacency_matrix of a graph
 =#
 function decode_full(encoded_matrix)
     # n = number of nodes - 1, max_prev_node = size of a step.
@@ -80,13 +105,24 @@ function decode_full(encoded_matrix)
 end
 
 
+
 #=
 Return sequential form of the graph represented
-by adjacency matrix.
+by adjacency matrix. The PURPOSE of this
+function is to sample the max_prev_node. To truely
+encode an adjacency matrix, we use encode_full()
 
-This can be decoded by decode function
+This can be decoded by decode function.
 
-# IMPORTANT: A bfs_ordering rearange must be called before calling this function
+# IMPORTANT pre-condition: A bfs_ordering rearange must be called before calling
+                            this function
+
+Params:
+    adj_matrix: Array{Int64, 2}: adjacency_matrix of a graph
+
+Return:
+    sequence of steps: Array{Int64, 2}. This is different from the result of
+        encode_full().
 =#
 function encode(adj_matrix)
     adj_matrix = tril(adj_matrix, -1)
@@ -119,9 +155,19 @@ function encode(adj_matrix)
     return output
 end
 
+
+
 #=
-This function call bfs_ordering before actually encode. This will avoid some
-potential crash.
+This function sort the vertices in BFS order, starting from given "root". After
+that the adjacency_matrix is encoded.
+
+Params:
+    adj_matrix: Array{Int64, 2}: adjacency_matrix of a graph
+    root: Int, the node where BFS start.
+
+Return:
+    sequence of steps: Array{Int64, 2}. This is different from the result of
+        encode_full().
 =#
 function safe_encode(adj_matrix, root=nothing)
     g = Graph(adj_matrix)
@@ -134,8 +180,16 @@ function safe_encode(adj_matrix, root=nothing)
 
 end
 
+
+
 #=
-This decode the encoded_matrix. This matrix is encoded by encode function
+This decode the output from encode().
+
+Params:
+    encoded_matrix: Array{Int64, 2}. This is the output of encoded() and safe_encoded()
+
+Return:
+    adjacency_matrix: Array{Int64, 2}
 =#
 function decode(encoded_matrix)
     # n = number of node - 1
@@ -160,7 +214,13 @@ end
 
 # PERMUTE AND RE-ORDERING ******************************************************
 #=
-This function permute row and col of a matrix.
+This function randomly permute row and col of a matrix.
+
+Params:
+    matrix: Array{Int64,2}. Must be a square matrix (like an adjacency matrix).
+
+Returns:
+    permuted matrix: Array{Int64,2}
 =#
 function permute_matrix(matrix)
     random_indices = shuffle(1:size(matrix)[1])
@@ -168,6 +228,8 @@ function permute_matrix(matrix)
 
     return permuted_matrix
 end
+
+
 
 #=
 Return a list of vertices in BFS ordering
@@ -205,13 +267,17 @@ function bfs_ordering(graph, root=nothing)
     return bfs_seq
 end
 
+
+
 #=
 Reorder the nodes in a graph in bfs ordering
-in:     adj_matrix: adjacency matrix of that graph
-        root: the starting node for bfs. If == nothing, the start node would
+Params:
+    adj_matrix: adjacency matrix of that graph
+    root: the starting node for bfs. If == nothing, the start node would
             begin randomized and therefore, the outputs are different between
             different run.
-out:    adjacency matrix of the graph after got bfs_ordering
+Returns
+    permuted adjacency_matrix given the BFS ordering
 =#
 function bfs_adj_matrix(adj_matrix, root=nothing)
     g = Graph(adj_matrix)
@@ -224,11 +290,18 @@ end
 
 # MAIN HELPER ******************************************************************
 #=
-Estimate the maximum number of prev nodes to keep.
-in:     all_matrix: array of adjacency matrix
-        n_sample: number of sampled matrices being used to find max prev_node.
+Estimate the maximum number of prev nodes to keep by repeatedly sampling the
+max_prev_node of each matrix in all_matrix. The more we sample the more accurate
+the result is.
 
-out:    the max prev_node among sampled matrix
+This is a method proposed by the authors of GraphRNN paper.
+
+Params:
+    all_matrix: array of adjacency matrix
+    n_sample: number of sampled matrices being used to find max prev_node.
+
+Returns:
+    the max prev_node among sampled matrix
 
 note prev_node = number of cols of (encoded matrix)
 =#
@@ -254,19 +327,21 @@ function find_max_prev_node(all_matrix, n_sample=nothing, root=nothing)
     return max_node_so_far
 end
 
+
+
 #=
 Generate training data from adjacency matrices.
 
-in:     all_matrix: array of adjacency matrices. This is our dataset
-        max_num_node: maximum number of nodes in matrices in all_matrix
-        max_prev_node: int, the maximum length of the cols in adjacency matrix
-        n_sample = int, number of sample
+Params:
+    all_matrix: array of adjacency matrices. This is our dataset
+    max_num_node: maximum number of nodes in matrices in all_matrix
+    max_prev_node: int, the maximum length of the cols in adjacency matrix
+    n_sample = int, number of sample
 
-out:    all_x = array of encoded matrices. size = batch_size
-        all_y = our array of targets correspond to . size = batch_size
-        all_len = int, number of nodes in each matrix
-
-IMPORTANT for consistency, we
+Returns:
+    all_x = array of encoded matrices. size = batch_size
+    all_y = our array of targets correspond to . size = batch_size
+    all_len = int, number of nodes in each matrix
 =#
 function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sample=nothing, root=1)
     # get an array of number of nodes of each matrix in all_matrix
@@ -312,23 +387,10 @@ function transform(all_matrix, max_num_node=nothing, max_prev_node=nothing, n_sa
         y[1:size(encoded)[1], :] = encoded
         x[2:size(encoded)[1] + 1, :] = encoded
 
-        #push!(all_x, Flux.batchseq([x[:, i] for i in 1:size(x)[2]]))
-        #push!(all_y, Flux.batchseq(y[:, i] for i in 1:size(y)[2]))
-        #push!(all_len, size(matrix)[1])
-        # all_x = [all_x [temp[:] for temp in eachrow(x)]] # convert x matrix to an
-        #                                                # array of arrays. This is our sequence
-        #                                                # where is element is an encoded step,
-        #
-        # all_y = [all_y [temp[:] for temp in eachrow(y)]] # do similar thing to y
-
         all_x[:,:,i] = transpose(x)
         all_y[:,:,i] = transpose(y)
         push!(all_len, size(matrix)[1])
     end
-
-    # # slice the first all 0 cols
-    # all_x = all_x[:, 2:size(all_x, 2)]
-    # all_y = all_y[:, 2:size(all_y, 2)]
 
     return (all_x, all_y, all_len)
 end

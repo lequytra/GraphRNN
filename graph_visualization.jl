@@ -7,6 +7,15 @@ import Fontconfig
 using GraphPlot, Compose
 
 # HELPER FUNCTIONS *************************************************************
+#=
+Return a layout for bipartite graph. This is used by the drawing function.
+
+Params:
+    g: graph: must be a bipartite graph.
+
+Returns:
+    x, y: 2 Arrays{Int64, 1}. Position x and y of each nodes.
+=#
 function bipartite_layout(g)
     bipart_map = bipartite_map(g)
 
@@ -35,9 +44,17 @@ function bipartite_layout(g)
 end
 
 
-# VIZUALIZATION FUNCTIONS ******************************************************
 
-# visualize a ladder graph
+
+# VIZUALIZATION FUNCTIONS ******************************************************
+#=
+visualize a ladder graph
+
+Params:
+    g: graph.
+    file_name: String: name of the plotting image file. If == nothing then no file
+        is created.
+=#
 function ladder_viz(g; file_name=nothing)
     temp = graphplot(g, curves=false)
 
@@ -48,7 +65,15 @@ function ladder_viz(g; file_name=nothing)
 end
 
 
-# visualize grid graph
+
+#=
+visualize a grid graph
+
+Params:
+    g: graph.
+    file_name: String: name of the plotting image file. If == nothing then no file
+        is created.
+=#
 function grid_viz(g; file_name=nothing)
     temp = graphplot(g, curves=false)
 
@@ -58,7 +83,21 @@ function grid_viz(g; file_name=nothing)
     return temp
 end
 
-# visualize complete bipartite graph
+
+
+#=
+visualize a complete bipartite graph
+
+Params:
+    g: graph.
+    file_name: String: name of the plotting image file. If == nothing then no file
+        is created.
+
+    other optional Params:
+        node_fill_color: color of node.
+        node_stroke_color: color of node's stroke.
+        edge_stroke_color: color of edge.
+=#
 function complete_bipartite_viz(g, node_fill_color=colorant"blue", node_stroke_color=colorant"black", edge_stroke_color=colorant"black"; file_name=nothing)
     locs_x, locs_y = bipartite_layout(g);
     # plot
@@ -76,7 +115,19 @@ function complete_bipartite_viz(g, node_fill_color=colorant"blue", node_stroke_c
 end
 
 
-# visualize sbm graph
+#=
+visualize a sbm graph
+
+Params:
+    g: graph.
+    file_name: String: name of the plotting image file. If == nothing then no file
+        is created.
+
+    other optional Params:
+        node_fill_color: color of node.
+        node_stroke_color: color of node's stroke.
+        edge_stroke_color: color of edge.
+=#
 function sbm_viz(g, node_fill_color=colorant"blue", node_stroke_color=colorant"black", edge_stroke_color=colorant"black"; file_name=nothing)
   # plot
     temp = gplot(g,
@@ -92,12 +143,17 @@ function sbm_viz(g, node_fill_color=colorant"blue", node_stroke_color=colorant"b
 end
 
 
-#=
-Draw given graph g. If file name is not nothing, the output will be write to file
-with file_name.
 
-type_name is a string, specifies the type of graph. It can be "sbm",
-"complete_bipartite", "ladder", or "grid"
+#=
+Draw given graph g of given type (provided via type_name). If file name is not
+nothing, the output will be write to file with file_name.
+
+Params:
+    g: graph.
+    type_name: String: specifies the type of graph. It can be "sbm",
+        "complete_bipartite", "ladder", or "grid".
+    file_name: String: name of the plotting image file. If == nothing then no file
+        is created.
 =#
 function graph_viz(g, type_name, file_name=nothing)
     if type_name == "sbm"
@@ -118,19 +174,3 @@ function graph_viz(g, type_name, file_name=nothing)
     return g
 end
 
-# TEST FUNCTIONS ***************************************************************
-# NOT IMPORTANT
-# test
-# ladder_g = ladder_graph(10)
-# grid_g = Grid([12,5])
-# complete_bipartite_g = complete_bipartite_graph(6, 4)
-#
-# w = [6.0 0.1;0.1 8.0]
-# n_per_community = [40; 40]
-# sbm_g = stochastic_block_model(w, n_per_community)
-
-
-#ladder_viz(ladder_g, file_name="ladder.png")
-#grid_viz(grid_g, file_name="grid.png")
-#complete_bipartite_viz(complete_bipartite_g, file_name="cp.png")
-#sbm_viz(sbm_g, file_name="sbm.png")
