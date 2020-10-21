@@ -6,6 +6,7 @@ dependencies = [
     "BSON",
     "Dates",
     "Flux",
+    "CUDA", 
     "LinearAlgebra",
     "ProgressMeter",
     "Statistics",
