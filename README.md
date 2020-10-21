@@ -36,15 +36,12 @@ Pkg.add("LightGraphs")
 Pkg.add("LinearAlgebra")
 Pkg.add("Random")
 
-# include packages
-using FileIO, Flux, LightGraphs, LinearAlgebra, Random
 ```
-For model and training (recommend install after installing packages for data and graph generating files): BSON, CUDA, Dates, Flux, LinearAlgebra, ProgressMeter, Statistics, TensorBoardLogger, Torch, YAML, Zygote. 
+For model and training (recommend install after installing packages for data and graph generating files): BSON, Dates, Flux, LinearAlgebra, ProgressMeter, Statistics, TensorBoardLogger, Torch, YAML, Zygote. 
 ```
 # installing packages
 using Pkg
 Pkg.add("BSON")
-Pkg.add("CUDA")
 Pkg.add("Dates")
 Pkg.add("Flux")
 Pkg.add("LinearAlgebra")
@@ -54,13 +51,6 @@ Pkg.add("TensorBoardLogger")
 Pkg.add("Torch")
 Pkg.add("YAML")
 Pkg.add("Zygote")
-
-# include packages
-using BSON: @save, @load
-using Statistics: mean
-using Zygote: @adjoint, @showgrad, @nograd
-using Torch:torch
-using CUDA, Dates, Flux, LinearAlgebra, ProgressMeter, TensorBoardLogger, YAML
 ```
 * For graph visualization: Compose, Cairo, Fontconfig, GraphPlot, GraphRecipes, Lightgraphs, Plots. 
 ```
@@ -73,11 +63,6 @@ Pkg.add("GraphPlot")
 Pkg.add("GraphRecipes")
 Pkg.add("LightGraphs")
 Pkg.add("Plots")
-
-# include packages
-import Cairo
-import Fontconfig
-using LightGraphs, GraphRecipes, Plots, GraphPlot, Compose
 ```
 Since the model and training also use files that involves data processing, it is recommended that you include packages for data before using model and training files.  
 
@@ -85,7 +70,10 @@ Since the model and training also use files that involves data processing, it is
 
 Our project supports creating data set for 4 types of graphs: SBM model, Complete Bipartite, Ladder, and Grid. To create a single graph, you can use function in [graph_generator.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_generator.jl). To create a new data set for a specific type of graphs, you can use function in [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl). There will be 2 files being generated, the training data and the metadata of those training data. User can load these files using two load functions in [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl). To visualize a graph, you can use function in [graph_visualization.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_visualization.jl). 
 
-## Train
+## Train & Inference
 
-## Inference
+To lean about the basic use of training and inference functions, see our [tutorial](tutorial.ipynb).
 
+## References
+
+Jiaxuan  You  et  al.  “GraphRNN:  A  Deep  Generative  Model  for  Graphs”.  In:  (Feb.2018).url:https://arxiv.org/pdf/1802.08773.pdf.
