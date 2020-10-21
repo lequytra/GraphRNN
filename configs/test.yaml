@@ -16,7 +16,7 @@ max_num_node: 25
 
 resume_from: 1
 
-epochs: 100
+epochs: 30
 
 auto_resume:
   enable: False
@@ -25,6 +25,10 @@ auto_resume:
   model_path: "" # If model path is provided, checkpoint dir is ignored.
 
 eval_period: 1
+
+inference:
+  enable: False
+  num_preds: 20
 
 TBlog:
   enable: True

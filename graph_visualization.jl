@@ -39,21 +39,23 @@ end
 
 # visualize a ladder graph
 function ladder_viz(g; file_name=nothing)
-    graphplot(g, curves=false)
+    temp = graphplot(g, curves=false)
 
     if file_name!= nothing
         png(file_name)
     end
+    return temp
 end
 
 
 # visualize grid graph
 function grid_viz(g; file_name=nothing)
-    graphplot(g, curves=false)
+    temp = graphplot(g, curves=false)
 
     if file_name != nothing
         png(file_name)
     end
+    return temp
 end
 
 # visualize complete bipartite graph
@@ -70,6 +72,7 @@ function complete_bipartite_viz(g, node_fill_color=colorant"blue", node_stroke_c
     if file_name != nothing
         draw(PNG(file_name, 16cm, 16cm), temp)
     end
+    return temp
 end
 
 
@@ -85,6 +88,7 @@ function sbm_viz(g, node_fill_color=colorant"blue", node_stroke_color=colorant"b
     if file_name != nothing
         draw(PNG(file_name, 16cm, 16cm), temp)
     end
+    return temp
 end
 
 
@@ -97,20 +101,21 @@ type_name is a string, specifies the type of graph. It can be "sbm",
 =#
 function graph_viz(g, type_name, file_name=nothing)
     if type_name == "sbm"
-        sbm_viz(g, file_name=file_name)
+        g = sbm_viz(g, file_name=file_name)
 
     elseif type_name == "complete_bipartite"
-        complete_bipartite_viz(g, file_name=file_name)
+        g = complete_bipartite_viz(g, file_name=file_name)
 
     elseif type_name == "ladder"
-        ladder_viz(g, file_name=file_name)
+        g = ladder_viz(g, file_name=file_name)
 
     elseif type_name == "grid"
-        grid_viz(g,file_name=file_name)
+        g = grid_viz(g,file_name=file_name)
 
     else
-        throw (ArgumentError('type_name must be: "sbm", "complete_bipartite", "ladder", or "grid"'))
+        throw(ArgumentError("type_name must be: \"sbm\", \"complete_bipartite\", \"ladder\", or \"grid\""))
     end
+    return g
 end
 
 # TEST FUNCTIONS ***************************************************************

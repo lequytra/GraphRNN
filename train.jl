@@ -144,6 +144,8 @@ Prepare dataset, train and test GraphRNN
 Args:
 	config_path (str): path to the YAML config file. 
 					See `configs/test.yaml` for reference. 
+Returns:
+	model (GraphRNN): the trained GraphRNN model. 
 =#
 function main(config_path)
 	# Load the config file. 
@@ -211,18 +213,22 @@ function main(config_path)
 	# Clear model's hidden state
 	Flux.reset!(model)
 
-	# Run inference using the trained model. 
-	G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=20)
+	if args["inference"]["enable"]
+		# Run inference using the trained model. 
+		G_pred = test_rnn_epoch(model, args["max_num_node"], args["max_prev_node"]; test_batch_size=args["inference"]["num_preds"])
 
-	if !isdir("predictions")
-		mkdir("predictions")
+		if !isdir("predictions")
+			mkdir("predictions")
+		end
+
+		# Writing the visualized predictions to predictions folder. 
+		for (i, g) in enumerate(G_pred)
+			grid_viz(g, file_name="predictions/$i.png")
+		end
+		@save "prediction_result.bson" G_pred
 	end
 
-	# Writing the visualized predictions to predictions folder. 
-	for (i, g) in enumerate(G_pred)
-		grid_viz(g, file_name="predictions/$i.png")
-	end
-	@save "prediction_result.bson" G_pred
+	return model
 end;
 
 
