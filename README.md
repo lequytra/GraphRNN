@@ -26,10 +26,26 @@ To install dependencies, please run `julia packages.jl`.
 
 Our project supports creating data set for 4 types of graphs: SBM model, Complete Bipartite, Ladder, and Grid. To create a single graph, you can use function in [graph_generator.jl](graph_generator.jl). To create a new data set for a specific type of graphs, you can use function in [data.jl](data.jl). There will be 2 files being generated, the training data and the metadata of those training data. User can load these files using two load functions in [data.jl](data.jl). To visualize a graph, you can use function in [graph_visualization.jl](graph_visualization.jl).  
 
+![Sample Grid Graph](asset/grid.png)
+![Sample Stochastic Block Model Graph](asset/sbm.png)
+
+
 
 ## Train & Inference
 
 For more details, please refer to our [interactive tutorial](tutorial.ipynb)
+
+Overall, using the configuration in our `configs/test.yaml`, we noticed that our loss converged too quickly. 
+
+![Training Loss After 100 epochs](asset/training_loss.png)
+![Testing Loss After 100 epochs](asset/testing_loss.png)
+
+Moreover, qualitative evaluation does not yield good results. After training for 100 epochs on the 2D grid dataset,
+we obtained very poor predictions from the model.
+![Training 2D grid vs. prediction](asset/4ib1kz.jpg)
+
+We believe that by expanding the size of the model, these results will be improved significantly. We are working to 
+facilitate stacking GRU layers in our GraphRNN implementation. 
 
 
 ## License
