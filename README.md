@@ -19,7 +19,7 @@ The project has the following files:
 * [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl) (main file): creating/loading data sets for different type of graphs.
   * include [graph_generator.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_generator.jl)
 * [model.jl](https://github.com/lequytra/GraphRNN/blob/master/model.jl) (main file): containing GraphRNN model definition.
-* [train.jl](https://github.com/lequytra/GraphRNN/blob/master/model.jl) (main file): containing the main function which handles loading the data set, training, and inferencing. 
+* [train.jl](https://github.com/lequytra/GraphRNN/blob/master/train.jl) (main file): containing the main function which handles loading the data set, training, and inferencing. 
   * include [data_helper.jl](https://github.com/lequytra/GraphRNN/blob/master/data_helpers.jl), [graph_visualization.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_visualization.jl), [tsb_logger.jl](https://github.com/lequytra/GraphRNN/blob/master/tsb_logger.jl), [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl), [model.jl](https://github.com/lequytra/GraphRNN/blob/master/model.jl).
 
 ## Installation
