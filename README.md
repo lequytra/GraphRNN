@@ -42,6 +42,7 @@ Overall, using the configuration in our `configs/test.yaml`, we noticed that our
 
 Moreover, qualitative evaluation does not yield good results. After training for 100 epochs on the 2D grid dataset,
 we obtained very poor predictions from the model.
+
 ![Training 2D grid vs. prediction](asset/4ib1kz.jpg)
 
 We believe that by expanding the size of the model, these results will be improved significantly. We are working to 
