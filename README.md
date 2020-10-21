@@ -36,7 +36,7 @@ Pkg.add("Random")
 # include packages
 using FileIO, Flux, LightGraphs, LinearAlgebra, Random
 ```
-* For model and training: BSON, CUDA, Dates, Flux, LinearAlgebra, ProgressMeter, Statistics, TensorBoardLogger, Torch, YAML, Zygote. 
+* For model and training (recommend install after installing packages for data and graph generating files): BSON, CUDA, Dates, Flux, LinearAlgebra, ProgressMeter, Statistics, TensorBoardLogger, Torch, YAML, Zygote. 
 ```
 # installing packages
 using Pkg
@@ -71,6 +71,7 @@ Pkg.add("GraphRecipes")
 Pkg.add("LightGraphs")
 Pkg.add("Plots")
 
+# include packages
 import Cairo
 import Fontconfig
 using LightGraphs, GraphRecipes, Plots, GraphPlot, Compose
