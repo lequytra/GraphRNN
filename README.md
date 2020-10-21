@@ -79,7 +79,7 @@ Since the model and training also use files that involves data processing, it is
 
 ## Generate Dataset
 
-Our project support creating data set for 4 types of graphs: SBM model, Complete Bipartite, Ladder, and Grid. To create a single graph, you can use function in graph_generator.jl. To create a new data set for a specific type of graphs, you can use function in data.jl. To visualize a graph, you can use function in graph_visualization.jl. 
+Our project supports creating data set for 4 types of graphs: SBM model, Complete Bipartite, Ladder, and Grid. To create a single graph, you can use function in [graph_generator.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_generator.jl). To create a new data set for a specific type of graphs, you can use function in [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl). There will be 2 files being generated, the training data and the metadata of those training data. User can load these files using two load functions in [data.jl](https://github.com/lequytra/GraphRNN/blob/master/data.jl). To visualize a graph, you can use function in [graph_visualization.jl](https://github.com/lequytra/GraphRNN/blob/master/graph_visualization.jl). 
 
 ## Train
 
